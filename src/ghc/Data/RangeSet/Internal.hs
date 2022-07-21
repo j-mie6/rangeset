@@ -1,8 +1,16 @@
-{-# LANGUAGE DerivingStrategies, MagicHash, UnboxedTuples, RoleAnnotations, TypeApplications, MultiWayIf #-}
+{-# LANGUAGE DerivingStrategies, MagicHash, UnboxedTuples, RoleAnnotations, TypeApplications, MultiWayIf, BangPatterns, CPP #-}
+#if __GLASGOW_HASKELL__ > 900
+{-# LANGUAGE UnliftedDatatypes, NoStarIsType #-}
+#endif
 module Data.RangeSet.Internal (module Data.RangeSet.Internal) where
 
+import Prelude
 import Control.Applicative (liftA2)
 import GHC.Exts (reallyUnsafePtrEquality#, isTrue#)
+
+#if __GLASGOW_HASKELL__ > 900
+import GHC.Exts (UnliftedType)
+#endif
 
 {-# INLINE ptrEq #-}
 ptrEq :: a -> a -> Bool
@@ -249,12 +257,12 @@ uncheckedBalanceR !sz !l1 !u1 !lt !szr !l2 !u2 !rlt !rrt
 
 {-# INLINE rotr #-}
 rotr :: Size -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
-rotr !sz !l1 !u1 (Fork _ !szl !l2 !u2 !p !q) !r = rotr' sz l1 u1 szl l2 u2 p q r
+rotr !sz !l1 !u1 (Fork _ szl l2 u2 p q) !r = rotr' sz l1 u1 szl l2 u2 p q r
 rotr _ _ _ _ _ = error "rotr on Tip"
 
 {-# INLINE rotl #-}
 rotl :: Size -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
-rotl !sz !l1 !u1 !p (Fork _ !szr !l2 !u2 !q !r) = rotl' sz l1 u1 p szr l2 u2 q r
+rotl !sz !l1 !u1 !p (Fork _ szr l2 u2 q r) = rotl' sz l1 u1 p szr l2 u2 q r
 rotl _ _ _ _ _ = error "rotr on Tip"
 
 {-# INLINE rotr' #-}
@@ -431,7 +439,10 @@ overlapping x y (Fork _ sz l u lt rt) =
       GT | l < x -> unsafeInsertL (diffE x u) x u (allMoreEqX rt)
       GT         -> disjointLink (sz - size lt - size rt) l u (allMoreEqX lt) rt-}
 
-data StrictMaybe a = SJust !a | SNothing
+#if __GLASGOW_HASKELL__ > 900
+type StrictMaybeE :: UnliftedType
+#endif
+data StrictMaybeE = SJust {-# UNPACK #-} !E | SNothing
 
 uncheckedSubsetOf :: RangeSet a -> RangeSet a -> Bool
 uncheckedSubsetOf Tip _ = True
@@ -443,20 +454,24 @@ uncheckedSubsetOf (Fork _ _ l u lt rt) t = case splitOverlap l u t of
     && uncheckedSubsetOf lt lt' && uncheckedSubsetOf rt rt'
   _                              -> False
 
-data SRange = SRange {-# UNPACK #-} !E {-# UNPACK #-} !E
+#if __GLASGOW_HASKELL__ > 900
+type SRangeList :: UnliftedType
+#endif
+data SRangeList = SRangeCons {-# UNPACK #-} !E {-# UNPACK #-} !E !SRangeList | SNil
 
-fromDistinctAscRangesSz :: [SRange] -> Int -> RangeSet a
+fromDistinctAscRangesSz :: SRangeList -> Int -> RangeSet a
 fromDistinctAscRangesSz rs !n = let (# t, _ #) = go rs 0 (n - 1) in t
   where
-    go :: [SRange] -> Int -> Int -> (# RangeSet a, [SRange] #)
+    go :: SRangeList -> Int -> Int -> (# RangeSet a, SRangeList #)
     go rs !i !j
       | i > j     = (# Tip, rs #)
       | otherwise =
         let !mid = (i + j) `div` 2
-            (# lt, rs' #) = go rs i (mid - 1)
-            SRange !l !u : rs'' = rs'
-            (# rt, rs''' #) = go rs'' (mid + 1) j
-        in (# fork l u lt rt, rs''' #)
+        in case go rs i (mid - 1) of
+             (# lt, rs' #) ->
+                let !(SRangeCons l u rs'') = rs'
+                in case go rs'' (mid + 1) j of
+                      (# rt, rs''' #) -> (# fork l u lt rt, rs''' #)
 
 {-# INLINE insertRangeE #-}
 -- This could be improved, but is OK
@@ -473,6 +488,7 @@ foldE fork tip (Fork _ _ l u lt rt) = fork l u (foldE fork tip lt) (foldE fork t
 
 -- Instances
 instance Eq (RangeSet a) where
+  {-# INLINABLE (==) #-}
   t1 == t2 = size t1 == size t2 && ranges t1 == ranges t2
     where
       {-# INLINE ranges #-}

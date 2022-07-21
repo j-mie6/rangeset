@@ -29,6 +29,7 @@ import Control.Selective (whileS)
 import GHC.Generics (Generic)
 
 import qualified Data.RangeSet as RangeSet
+import qualified Data.RangeSet.Internal as RangeSet
 #ifdef USE_ENUM
 import qualified Data.EnumSet as Set
 #else

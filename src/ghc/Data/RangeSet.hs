@@ -1,4 +1,4 @@
-{-# LANGUAGE DerivingStrategies, MagicHash, UnboxedTuples, RoleAnnotations, TypeApplications, MultiWayIf #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, TypeApplications, BangPatterns, ScopedTypeVariables #-}
 {-|
 Module      : Data.RangeSet
 Description : Efficient set for (semi-)contiguous data.
@@ -12,30 +12,21 @@ smaller memory footprint than a @Set@, and can result in asymptotically faster o
 @since 0.0.1.0
 -}
 module Data.RangeSet (
-    RangeSet(..),
-    empty, singleton, null, full, isSingle, extractSingle, size, sizeRanges,
-    member, notMember, findMin, findMax,
-    insert, delete,
+    RangeSet,
+    module Data.RangeSet.Primitives,
+    singleton, null, full, isSingle, extractSingle, size, sizeRanges,
+    notMember, findMin, findMax,
     union, intersection, difference, disjoint, complement,
     isSubsetOf, isProperSubsetOf,
     allLess, allMore,
-    elems, unelems, fromRanges, fromDistinctAscRanges, insertRange, fromList, fromDistinctAscList,
-    fold,
-    -- Testing
-    valid
+    elems, unelems,
+    module Data.RangeSet.Builders,
   ) where
 
 import Prelude hiding (null)
 import Data.RangeSet.Internal
-
-{-|
-The empty `RangeSet`.
-
-@since 2.1.0.0
--}
-{-# INLINE empty #-}
-empty :: RangeSet a
-empty = Tip
+import Data.RangeSet.Builders
+import Data.RangeSet.Primitives
 
 {-|
 A `RangeSet` containing a single value.
@@ -90,21 +81,6 @@ sizeRanges :: forall a. Enum a => RangeSet a -> Int
 sizeRanges = fold @a (\_ _ szl szr -> szl + szr + 1) 0
 
 {-|
-Test whether or not a given value is found within the set.
-
-@since 2.1.0.0
--}
-{-# INLINEABLE member #-}
-member :: forall a. Enum a => a -> RangeSet a -> Bool
-member !x = go
-  where
-    !x' = fromEnum x
-    go (Fork _ _ l u lt rt)
-      | l <= x'   = x' <= u || go rt
-      | otherwise = go lt
-    go Tip = False
-
-{-|
 Test whether or not a given value is not found within the set.
 
 @since 2.1.0.0
@@ -112,24 +88,6 @@ Test whether or not a given value is not found within the set.
 {-# INLINEABLE notMember #-}
 notMember :: Enum a => a -> RangeSet a -> Bool
 notMember x = not . member x
-
-{-|
-Insert a new element into the set.
-
-@since 2.1.0.0
--}
-{-# INLINEABLE insert #-}
-insert :: Enum a => a -> RangeSet a -> RangeSet a
-insert = insertE . fromEnum
-
-{-|
-Remove an element from the set, if it appears.
-
-@since 2.1.0.0
--}
-{-# INLINEABLE delete #-}
-delete :: Enum a => a -> RangeSet a -> RangeSet a
-delete = deleteE . fromEnum
 
 {-|
 Find the minimum value within the set, if one exists.
@@ -266,8 +224,8 @@ complement t@(Fork _ sz l u lt rt) = case maxl of
     -- otherwise, the tree will not change size
     -- The insert or shrink will happen at an extremity, and rebalance need only occur along the spine
                        -- this is safe, because we've checked for the maxSet case already
-    (# !t', !maxl #) | minl == minBoundE = push (succ minu) rest
-                     | otherwise         = push minBoundE t
+    !(# !t', !maxl #) | minl == minBoundE = push (succ minu) rest
+                      | otherwise         = push minBoundE t
 
     safeSucc !x
       | x == maxBoundE = SNothing
@@ -275,7 +233,7 @@ complement t@(Fork _ sz l u lt rt) = case maxl of
 
     -- the argument l should not be altered, it /must/ be the correct lower bound
     -- the return /must/ be the next correct lower bound
-    push :: E -> RangeSet a -> (# RangeSet a, StrictMaybe E #)
+    push :: E -> RangeSet a -> (# RangeSet a, StrictMaybeE #)
     push !maxl Tip = (# Tip, SJust maxl #)
     push min (Fork _ _ u max lt Tip) =
       let (# !lt', SJust l #) = push min lt
@@ -283,7 +241,7 @@ complement t@(Fork _ sz l u lt rt) = case maxl of
     push min (Fork _ _ u l' lt rt@Fork{}) =
       let (# !lt', SJust l #) = push min lt
           -- this is safe, because we know the right-tree contains elements larger than l'
-          (# !rt', !max #) = push (succ l') rt
+          !(# !rt', !max #) = push (succ l') rt
       in  (# fork l (pred u) lt' rt', max #)
 
 {-|
@@ -332,101 +290,3 @@ unelems t = foldE fork tip t (fromEnum @a minBound) (fromEnum @a maxBound) []
             | otherwise = rt (succ u') u
     tip :: E -> E -> [a] -> [a]
     tip l u = (range (toEnum l) (toEnum u) ++)
-
-{-|
-Constructs a `RangeSet` given a list of ranges.
-
-@since 2.1.0.0
--}
-fromRanges :: forall a. Enum a => [(a, a)] -> RangeSet a
-fromRanges [] = empty
-fromRanges ((x, y):rs) = go rs ey (SRange ex ey :) 1
-  where
-    !ex = fromEnum x
-    !ey = fromEnum y
-    go :: [(a, a)] -> E -> ([SRange] -> [SRange]) -> Int -> RangeSet a
-    go [] !_ k !n = fromDistinctAscRangesSz (k []) n
-    go ((x, y):rs) z k n
-      -- ordering and disjointness of the ranges broken
-      | ex <= z || ey <= z = insertRangeE ex ey (foldr (uncurry insertRange) (fromDistinctAscRangesSz (k []) n) rs)
-      | otherwise          = go rs ey (k . (SRange ex ey :)) (n + 1)
-      where
-        !ex = fromEnum x
-        !ey = fromEnum y
-
-{-|
-Constructs a `RangeSet` given a list of ranges that are in ascending order and do not overlap (this is unchecked).
-
-@since 2.2.0.0
--}
-fromDistinctAscRanges :: forall a. Enum a => [(a, a)] -> RangeSet a
-fromDistinctAscRanges rs = go rs id 0
-  where
-    go :: [(a, a)] -> ([SRange] -> [SRange]) -> Int -> RangeSet a
-    go [] k !n = fromDistinctAscRangesSz (k []) n
-    go ((x, y):rs) k n = go rs (k . (SRange (fromEnum x) (fromEnum y) :)) (n + 1)
-
-{-|
-Inserts a range into a `RangeSet`.
-
-@since 2.1.0.0
--}
-{-# INLINE insertRange #-}
-insertRange :: Enum a => a -> a -> RangeSet a -> RangeSet a
-insertRange l u t =
-  let !le = fromEnum l
-      !ue = fromEnum u
-  in insertRangeE le ue t
-
-{-|
-Builds a `RangeSet` from a given list of elements.
-
-@since 2.1.0.0
--}
-fromList :: forall a. Enum a => [a] -> RangeSet a
-fromList [] = empty
-fromList (x:xs) = go xs (fromEnum x) (fromEnum x) id 1
-  where
-    go :: [a] -> E -> E -> ([SRange] -> [SRange]) -> Int -> RangeSet a
-    go [] !l !u k !n = fromDistinctAscRangesSz (k [SRange l u]) n
-    go (!x:xs) l u k n
-      -- ordering or uniqueness is broken
-      | ex <= u      = insertE ex (foldr insert (fromDistinctAscRangesSz (k [SRange l u]) n) xs)
-      -- the current range is expanded
-      | ex == succ u = go xs l ex k n
-      -- a new range begins
-      | otherwise    = go xs ex ex (k . (SRange l u :)) (n + 1)
-      where !ex = fromEnum x
-
-
--- not sure if this one is any use, it avoids one comparison per element...
-{-|
-Builds a `RangeSet` from a given list of elements that are in ascending order with no duplicates (this is unchecked).
-
-@since 2.1.0.0
--}
-fromDistinctAscList :: forall a. Enum a => [a] -> RangeSet a
-fromDistinctAscList [] = empty
-fromDistinctAscList (x:xs) = go xs (fromEnum x) (fromEnum x) id 1
-  where
-    go :: [a] -> E -> E -> ([SRange] -> [SRange]) -> Int -> RangeSet a
-    go [] !l !u k !n = fromDistinctAscRangesSz (k [SRange l u]) n
-    go (!x:xs) l u k n
-      -- the current range is expanded
-      | ex == succ u = go xs l ex k n
-      -- a new range begins
-      | otherwise    = go xs ex ex (k . (SRange l u :)) (n + 1)
-      where !ex = fromEnum x
-
-{-|
-Folds a range set.
-
-@since 2.1.0.0
--}
-{-# INLINEABLE fold #-}
-fold :: Enum a
-     => (a -> a -> b -> b -> b) -- ^ Function that combines the lower and upper values (inclusive) for a range with the folded left- and right-subtrees.
-     -> b                       -- ^ Value to be substituted at the leaves.
-     -> RangeSet a
-     -> b
-fold fork = foldE (\l u -> fork (toEnum l) (toEnum u))

@@ -18,6 +18,7 @@ import Test.Tasty.QuickCheck
 import Prelude hiding (null)
 
 import Data.RangeSet
+import Data.RangeSet.Internal
 import Data.List (nub, sort, intersect)
 import GHC.Generics (Generic)
 
