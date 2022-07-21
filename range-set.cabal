@@ -1,0 +1,104 @@
+cabal-version:       2.2
+name:                range-set
+-- https://wiki.haskell.org/Package_versioning_policy
+-- PVP summary:      +--------- breaking changes
+--                   | +------- breaking changes
+--                   | | +----- non-breaking additions
+--                   | | | +--- code changes with no API change
+version:             0.0.1.0
+synopsis:            TODO
+description:         TODO
+
+
+homepage:            https://github.com/j-mie6/range-set/tree/master
+bug-reports:         https://github.com/j-mie6/range-set/issues
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Jamie Willis, range-set Contributors
+maintainer:          Jamie Willis <j.willis19@imperial.ac.uk>
+category:            Data
+build-type:          Simple
+extra-doc-files:     ChangeLog.md
+                     README.md
+tested-with:         GHC == 8.6.5,
+                     GHC == 8.8.4,
+                     GHC == 8.10.7,
+                     GHC == 9.0.2,
+                     GHC == 9.2.3
+
+library
+  exposed-modules:     Data.RangeSet
+
+  default-extensions:  BangPatterns
+                       DataKinds
+                       GADTs
+                       FlexibleContexts
+                       FlexibleInstances
+                       KindSignatures
+                       PolyKinds
+                       RankNTypes
+                       ScopedTypeVariables
+                       TemplateHaskell
+                       TypeOperators
+
+                       NoStarIsType
+
+  build-depends:       base                 >= 4.10    && < 5,
+  hs-source-dirs:      src/ghc
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Weverything -Wcompat
+                       -Wno-unticked-promoted-constructors
+                       -Wno-name-shadowing
+                       -Wno-unused-do-bind
+                       -Wno-implicit-prelude
+                       -Wno-missing-import-lists
+                       -Wno-missing-local-signatures
+                       -Wno-safe
+                       -Wno-unsafe
+                       -Wno-missed-specialisations
+                       -Wno-all-missed-specialisations
+                       -Wno-incomplete-uni-patterns
+                       -freverse-errors
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wno-missing-safe-haskell-mode
+                       -Wno-prepositive-qualified-module
+                       -Wno-unused-packages
+  if impl(ghc >= 9.2)
+    ghc-options:       -Wno-missing-kind-signatures
+
+common test-common
+  build-depends:       base >=4.10 && <5,
+                       range-set,
+                       tasty
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+
+-- TODO: break this into two groups, one for hunit and the other for quickcheck
+test-suite range-set
+  import:              test-common
+  type:                exitcode-stdio-1.0
+  build-depends:       tasty-hunit, tasty-quickcheck
+  main-is:             RangeSet.hs
+
+common benchmark-common
+  build-depends:       base >=4.10 && <5,
+                       range-set,
+                       gauge,
+                       deepseq
+  hs-source-dirs:      benchmarks
+  other-modules:       BenchmarkUtils
+  default-language:    Haskell2010
+
+benchmark rangeset-bench
+  import:              benchmark-common
+  type:                exitcode-stdio-1.0
+  build-depends:       containers,
+                       QuickCheck,
+                       array,
+                       selective
+  main-is:             RangeSetBench.hs
+  --other-modules:       Data.EnumSet
+
+source-repository head
+  type:                git
+  location:            https://github.com/j-mie6/range-set

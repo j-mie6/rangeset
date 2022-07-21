@@ -1,0 +1,3 @@
+packages: range-set.cabal
+optimization:2
+profiling-detail:none
