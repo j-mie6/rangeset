@@ -36,12 +36,12 @@ insertE x t@(Fork h sz l u lt rt)
   | l <= x = if
     | x <= u -> t
   -- If it is adjacent to the upper range, it may fuse
-    | x == succ u -> fuseRight h (sz + 1) l x lt rt                                 -- we know x > u since x <= l && not x <= u
+    | x == succ u -> fuseRight h (sz + 1) l x lt rt                                         -- we know x > u since x <= l && not x <= u
   -- Otherwise, insert and balance for right
     | otherwise -> ifStayedSame rt (insertE x rt) t (balance (sz + 1) l u lt)               -- cannot be biased, because fusion can shrink a tree
   | {- x < l -} otherwise = if
   -- If it is adjacent to the lower, it may fuse
-    x == pred l then fuseLeft h (sz + 1) x u lt rt                                  -- the equality must be guarded by an existence check
+    x == pred l then fuseLeft h (sz + 1) x u lt rt                                          -- the equality must be guarded by an existence check
   -- Otherwise, insert and balance for left
                 else ifStayedSame lt (insertE x lt) t $ \lt' -> balance (sz + 1) l u lt' rt -- cannot be biased, because fusion can shrink a tree
   where
