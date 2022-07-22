@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Safe #-}
 module Data.RangeSet.Internal.Enum (module Data.RangeSet.Internal.Enum) where
 
 import Prelude

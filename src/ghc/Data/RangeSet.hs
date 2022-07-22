@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, TypeApplications, BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, TypeApplications, BangPatterns, ScopedTypeVariables, Safe #-}
 {-|
 Module      : Data.RangeSet
 Description : Efficient set for (semi-)contiguous data.
@@ -121,8 +121,8 @@ union t Tip = t
 union Tip t = t
 union t@(Fork _ _ l u lt rt) t' = case split l u t' of
   (# lt', rt' #)
-    | ltlt' `ptrEq` lt, rtrt' `ptrEq` rt -> t
-    | otherwise                          -> link l u ltlt' rtrt'
+    | stayedSame lt ltlt', stayedSame rt rtrt' -> t
+    | otherwise                                -> link l u ltlt' rtrt'
     where !ltlt' = lt `union` lt'
           !rtrt' = rt `union` rt'
 
@@ -141,7 +141,7 @@ intersection t1@(Fork _ _ l1 u1 lt1 rt1) t2 =
     Tip -> disjointMerge lt1lt2 rt1rt2
     Fork 1 sz x y _ _
       | x == l1, y == u1
-      , lt1lt2 `ptrEq` lt1, rt1rt2 `ptrEq` rt1 -> t1
+      , stayedSame lt1 lt1lt2, stayedSame rt1 rt1rt2 -> t1
       | otherwise -> disjointLink sz x y lt1lt2 rt1rt2
     Fork _ sz x y lt' rt' -> disjointLink (sz - size lt' - size rt') x y (disjointMerge lt1lt2 lt') (disjointMerge rt' rt1rt2)
   where

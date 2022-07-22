@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Safe #-}
 module Data.RangeSet.Internal.SmartConstructors (
     single,
     fork, forkSz, forkH,
@@ -31,7 +31,7 @@ forkSz !sz !l !u !lt !rt = forkH sz l u (height lt) lt (height rt) rt
 forkH :: Size -> E -> E -> Int -> RangeSet a -> Int -> RangeSet a -> RangeSet a
 forkH !sz !l !u !lh !lt !rh !rt =  Fork (heightOfFork lh rh) sz l u lt rt
 
--- Balancers 
+-- Balancers
 {-# NOINLINE balance #-}
 balance :: Size -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
 balance !sz !l !u Tip Tip = single sz l u

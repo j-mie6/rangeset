@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, UnboxedTuples, Safe #-}
 module Data.RangeSet.Internal.Extractors (module Data.RangeSet.Internal.Extractors) where
 
 import Prelude

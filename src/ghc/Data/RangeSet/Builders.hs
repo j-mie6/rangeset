@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables, Safe #-}
 module Data.RangeSet.Builders (fromRanges, fromDistinctAscRanges, insertRange, fromList, fromDistinctAscList) where
 
 import Prelude hiding (id, (.))

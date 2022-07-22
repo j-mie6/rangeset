@@ -26,6 +26,11 @@ tested-with:         GHC == 8.6.5,
                      GHC == 9.0.2,
                      GHC == 9.2.3
 
+flag safe-haskell-rangeset
+  description: Make the RangeSet implementation use only safe-haskell things
+  default:     False
+  manual:      True
+
 library
   exposed-modules:     Data.RangeSet
                        Data.RangeSet.Builders
@@ -40,6 +45,7 @@ library
                        Data.RangeSet.Internal.Inserters
                        Data.RangeSet.Internal.Lumpers
                        Data.RangeSet.Internal.Splitters
+                       Data.RangeSet.Internal.Heuristics
 
   build-depends:       base                 >= 4.10    && < 5
   build-tool-depends:  cpphs:cpphs          >= 1.18.8  && < 1.21
@@ -48,7 +54,6 @@ library
   ghc-options:         -Wall -Weverything -Wcompat
                        -Wno-name-shadowing
                        -Wno-missing-import-lists
-                       -Wno-safe
                        -Wno-unsafe
                        -Wno-all-missed-specialisations
                        -Wno-incomplete-uni-patterns
@@ -59,6 +64,8 @@ library
     ghc-options:       -Wno-missing-safe-haskell-mode
   if impl(ghc >= 9.2)
     ghc-options:       -Wno-missing-kind-signatures
+  if flag(safe-haskell-rangeset)
+    cpp-options:       -DSAFE
 
 common test-common
   build-depends:       base >=4.10 && <5,

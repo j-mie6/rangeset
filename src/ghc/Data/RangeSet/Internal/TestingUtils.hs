@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Data.RangeSet.Internal.TestingUtils (module Data.RangeSet.Internal.TestingUtils) where
 
 import Prelude

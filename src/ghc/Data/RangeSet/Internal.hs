@@ -1,4 +1,9 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, TypeApplications, MultiWayIf, BangPatterns #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, MultiWayIf, BangPatterns, CPP #-}
+#ifdef SAFE
+{-# LANGUAGE Safe #-}
+#else
+{-# LANGUAGE Trustworthy #-}
+#endif
 module Data.RangeSet.Internal (
     module Data.RangeSet.Internal,
     RangeSet(..), E, SRangeList(..), StrictMaybeE(..),
@@ -8,11 +13,11 @@ module Data.RangeSet.Internal (
     module Data.RangeSet.Internal.Inserters,
     module Data.RangeSet.Internal.Extractors,
     module Data.RangeSet.Internal.Lumpers,
-    module Data.RangeSet.Internal.Splitters
+    module Data.RangeSet.Internal.Splitters,
+    module Data.RangeSet.Internal.Heuristics
   ) where
 
 import Prelude
-import GHC.Exts (reallyUnsafePtrEquality#, isTrue#)
 
 import Data.RangeSet.Internal.Types
 import Data.RangeSet.Internal.Enum
@@ -21,14 +26,7 @@ import Data.RangeSet.Internal.Inserters
 import Data.RangeSet.Internal.Extractors
 import Data.RangeSet.Internal.Lumpers
 import Data.RangeSet.Internal.Splitters
-
-{-# INLINE ptrEq #-}
-ptrEq :: a -> a -> Bool
-ptrEq x y = isTrue# (reallyUnsafePtrEquality# x y)
-
-{-# INLINE ifeq #-}
-ifeq :: RangeSet a -> RangeSet a -> RangeSet a -> (RangeSet a -> RangeSet a) -> RangeSet a
-ifeq !x !x' y f = if size x == size x' then y else f x'
+import Data.RangeSet.Internal.Heuristics
 
 {-# INLINEABLE insertE #-}
 insertE :: E -> RangeSet a -> RangeSet a
@@ -40,12 +38,12 @@ insertE x t@(Fork h sz l u lt rt)
   -- If it is adjacent to the upper range, it may fuse
     | x == succ u -> fuseRight h (sz + 1) l x lt rt                                 -- we know x > u since x <= l && not x <= u
   -- Otherwise, insert and balance for right
-    | otherwise -> ifeq rt (insertE x rt) t (balance (sz + 1) l u lt)               -- cannot be biased, because fusion can shrink a tree
+    | otherwise -> ifStayedSame rt (insertE x rt) t (balance (sz + 1) l u lt)               -- cannot be biased, because fusion can shrink a tree
   | {- x < l -} otherwise = if
   -- If it is adjacent to the lower, it may fuse
     x == pred l then fuseLeft h (sz + 1) x u lt rt                                  -- the equality must be guarded by an existence check
   -- Otherwise, insert and balance for left
-                else ifeq lt (insertE x lt) t $ \lt' -> balance (sz + 1) l u lt' rt -- cannot be biased, because fusion can shrink a tree
+                else ifStayedSame lt (insertE x lt) t $ \lt' -> balance (sz + 1) l u lt' rt -- cannot be biased, because fusion can shrink a tree
   where
     {-# INLINE fuseLeft #-}
     fuseLeft !h !sz !x !u Tip !rt = Fork h sz x u Tip rt
@@ -79,8 +77,8 @@ deleteE x t@(Fork h sz l u lt rt) =
     -- Otherwise, if it's still in range, the range undergoes fission
        LT          -> fission (sz - 1) l x u lt rt
     -- Otherwise delete and balance for one of the left or right
-       GT          -> ifeq rt (deleteE x rt) t $ balance (sz - 1) l u lt             -- cannot be biased, because fisson can grow a tree
-    GT             -> ifeq lt (deleteE x lt) t $ \lt' -> balance (sz - 1) l u lt' rt -- cannot be biased, because fisson can grow a tree
+       GT          -> ifStayedSame rt (deleteE x rt) t $ balance (sz - 1) l u lt             -- cannot be biased, because fisson can grow a tree
+    GT             -> ifStayedSame lt (deleteE x lt) t $ \lt' -> balance (sz - 1) l u lt' rt -- cannot be biased, because fisson can grow a tree
   where
     {- Fission breaks a node into two new ranges
        we'll push the range down into the smallest child, ensuring it's balanced -}

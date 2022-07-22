@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, UnboxedTuples, Safe #-}
 module Data.RangeSet.Internal.Inserters (module Data.RangeSet.Internal.Inserters) where
 
 import Prelude

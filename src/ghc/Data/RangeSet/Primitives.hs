@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Safe #-}
 module Data.RangeSet.Primitives (empty, member, insert, delete, fold) where
 
 import Prelude

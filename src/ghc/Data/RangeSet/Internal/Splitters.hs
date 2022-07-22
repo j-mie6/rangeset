@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, UnboxedTuples, Safe #-}
 module Data.RangeSet.Internal.Splitters (module Data.RangeSet.Internal.Splitters) where
 
 import Prelude
