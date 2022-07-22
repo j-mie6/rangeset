@@ -14,7 +14,7 @@ id ss = ss
 {-|
 Constructs a `RangeSet` given a list of ranges.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 fromRanges :: forall a. Enum a => [(a, a)] -> RangeSet a
 fromRanges [] = Tip
@@ -35,7 +35,7 @@ fromRanges ((x, y):rs) = go rs ey (SRangeCons ex ey) 1
 {-|
 Constructs a `RangeSet` given a list of ranges that are in ascending order and do not overlap (this is unchecked).
 
-@since 2.2.0.0
+@since 0.0.1.0
 -}
 fromDistinctAscRanges :: forall a. Enum a => [(a, a)] -> RangeSet a
 fromDistinctAscRanges rs = go rs id 0
@@ -47,7 +47,7 @@ fromDistinctAscRanges rs = go rs id 0
 {-|
 Inserts a range into a `RangeSet`.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE insertRange #-}
 insertRange :: Enum a => a -> a -> RangeSet a -> RangeSet a
@@ -59,7 +59,7 @@ insertRange l u t =
 {-|
 Builds a `RangeSet` from a given list of elements.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 fromList :: forall a. Enum a => [a] -> RangeSet a
 fromList [] = Tip
@@ -81,7 +81,7 @@ fromList (x:xs) = go xs (fromEnum x) (fromEnum x) id 1
 {-|
 Builds a `RangeSet` from a given list of elements that are in ascending order with no duplicates (this is unchecked).
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 fromDistinctAscList :: forall a. Enum a => [a] -> RangeSet a
 fromDistinctAscList [] = Tip

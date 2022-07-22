@@ -7,7 +7,7 @@ import Data.RangeSet.Internal
 {-|
 The empty `RangeSet`.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE empty #-}
 empty :: RangeSet a
@@ -16,13 +16,14 @@ empty = Tip
 {-|
 Test whether or not a given value is found within the set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE member #-}
 member :: Enum a => a -> RangeSet a -> Bool
 member !x = go
   where
     !x' = fromEnum x
+    go :: RangeSet a -> Bool
     go (Fork _ _ l u lt rt)
       | l <= x'   = x' <= u || go rt
       | otherwise = go lt
@@ -31,7 +32,7 @@ member !x = go
 {-|
 Insert a new element into the set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE insert #-}
 insert :: Enum a => a -> RangeSet a -> RangeSet a
@@ -40,7 +41,7 @@ insert = insertE . fromEnum
 {-|
 Remove an element from the set, if it appears.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE delete #-}
 delete :: Enum a => a -> RangeSet a -> RangeSet a
@@ -49,7 +50,7 @@ delete = deleteE . fromEnum
 {-|
 Folds a range set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE fold #-}
 fold :: Enum a

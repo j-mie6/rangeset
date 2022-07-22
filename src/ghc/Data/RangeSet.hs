@@ -31,7 +31,7 @@ import Data.RangeSet.Primitives
 {-|
 A `RangeSet` containing a single value.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 singleton :: Enum a => a -> RangeSet a
 singleton x = single 1 (fromEnum x) (fromEnum x)
@@ -39,7 +39,7 @@ singleton x = single 1 (fromEnum x) (fromEnum x)
 {-|
 Is this set empty?
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 null :: RangeSet a -> Bool
 null Tip = True
@@ -48,7 +48,7 @@ null _ = False
 {-|
 Is this set full?
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 full :: forall a. (Enum a, Bounded a) => RangeSet a -> Bool
 full Tip = False
@@ -57,7 +57,7 @@ full (Fork _ _ l u _ _) = l == fromEnum @a minBound && fromEnum @a maxBound == u
 {-|
 Does this set contain a single element?
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 isSingle :: RangeSet a -> Bool
 isSingle (Fork _ 1 _ _ _ _) = True
@@ -66,16 +66,16 @@ isSingle _ = False
 {-|
 Possibly extract the element contained in the set if it is a singleton set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 extractSingle :: Enum a => RangeSet a -> Maybe a
-extractSingle (Fork _ _ x y Tip Tip) | x == y = Just (toEnum x)
-extractSingle _                               = Nothing
+extractSingle (Fork _ 1 x _ _ _) = Just (toEnum x)
+extractSingle _                  = Nothing
 
 {-|
 Return the number of /contiguous ranges/ that populate the set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 sizeRanges :: forall a. Enum a => RangeSet a -> Int
 sizeRanges = fold @a (\_ _ szl szr -> szl + szr + 1) 0
@@ -83,7 +83,7 @@ sizeRanges = fold @a (\_ _ szl szr -> szl + szr + 1) 0
 {-|
 Test whether or not a given value is not found within the set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE notMember #-}
 notMember :: Enum a => a -> RangeSet a -> Bool
@@ -92,7 +92,7 @@ notMember x = not . member x
 {-|
 Find the minimum value within the set, if one exists.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE findMin #-}
 findMin :: Enum a => RangeSet a -> Maybe a
@@ -102,7 +102,7 @@ findMin (Fork _ _ l u lt _) = let (# !m, !_ #) = minRange l u lt in Just (toEnum
 {-|
 Find the maximum value within the set, if one exists.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE findMax #-}
 findMax :: Enum a => RangeSet a -> Maybe a
@@ -113,7 +113,7 @@ findMax (Fork _ _ l u _ rt) = let (# !_, !m #) = maxRange l u rt in Just (toEnum
 Unions two sets together such that if and only if an element appears in either one of the sets, it
 will appear in the result set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINABLE union #-}
 union :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
@@ -130,7 +130,7 @@ union t@(Fork _ _ l u lt rt) t' = case split l u t' of
 Intersects two sets such that an element appears in the result if and only if it is present in both
 of the provided sets.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINABLE intersection #-}
 intersection :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
@@ -152,7 +152,7 @@ intersection t1@(Fork _ _ l1 u1 lt1 rt1) t2 =
 {-|
 Do two sets have no elements in common?
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE disjoint #-}
 disjoint :: Enum a => RangeSet a -> RangeSet a -> Bool
@@ -165,7 +165,7 @@ disjoint (Fork _ _ l u lt rt) t = case splitOverlap l u t of
 {-|
 Removes all elements from the first set that are found in the second set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE difference #-}
 difference :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
@@ -182,7 +182,7 @@ difference t (Fork _ _ l u lt rt) = case split l u t of
 {-|
 Filters a set by removing all values greater than or equal to the given value.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE allLess #-}
 allLess :: Enum a => a -> RangeSet a -> RangeSet a
@@ -191,7 +191,7 @@ allLess = allLessE . fromEnum
 {-|
 Filters a set by removing all values less than or equal to the given value.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE allMore #-}
 allMore :: Enum a => a -> RangeSet a -> RangeSet a
@@ -201,7 +201,7 @@ allMore = allMoreE . fromEnum
 Inverts a set: every value which was an element is no longer an element, and every value that
 was not an element now is. This is only possible on `Bounded` types.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE complement #-}
 complement :: forall a. (Bounded a, Enum a) => RangeSet a -> RangeSet a
@@ -248,7 +248,7 @@ complement t@(Fork _ sz l u lt rt) = case maxl of
 Tests if all the element of the first set appear in the second, but also that the first and second
 sets are not equal.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE isProperSubsetOf #-}
 isProperSubsetOf :: RangeSet a -> RangeSet a -> Bool
@@ -257,7 +257,7 @@ isProperSubsetOf t1 t2 = size t1 < size t2 && uncheckedSubsetOf t1 t2
 {-|
 Tests if all the elements of the first set appear in the second.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE isSubsetOf #-}
 isSubsetOf :: RangeSet a -> RangeSet a -> Bool
@@ -266,7 +266,7 @@ isSubsetOf t1 t2 = size t1 <= size t2 && uncheckedSubsetOf t1 t2
 {-|
 Returns all the elements found within the set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINE elems #-}
 elems :: Enum a => RangeSet a -> [a]
@@ -275,7 +275,7 @@ elems t = fold (\l u lt rt -> lt . (range l u ++) . rt) id t []
 {-|
 Returns all the values that are not found within the set.
 
-@since 2.1.0.0
+@since 0.0.1.0
 -}
 {-# INLINEABLE unelems #-}
 unelems :: forall a. (Bounded a, Enum a) => RangeSet a -> [a]
