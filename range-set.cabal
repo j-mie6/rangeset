@@ -6,8 +6,10 @@ name:                range-set
 --                   | | +----- non-breaking additions
 --                   | | | +--- code changes with no API change
 version:             0.0.1.0
-synopsis:            TODO
-description:         TODO
+synopsis:            Efficient sets for semi-contiguous data
+description:         Exposes the range-set datastructure, which can encode
+                     enumerable data efficiently by compressing contiguous
+                     ranges of members within the set.
 
 
 homepage:            https://github.com/j-mie6/range-set/tree/master
