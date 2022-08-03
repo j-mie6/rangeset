@@ -1,5 +1,5 @@
 cabal-version:       2.2
-name:                range-set
+name:                rangeset
 -- https://wiki.haskell.org/Package_versioning_policy
 -- PVP summary:      +--------- breaking changes
 --                   | +------- breaking changes
@@ -12,8 +12,8 @@ description:         Exposes the range-set datastructure, which can encode
                      ranges of members within the set.
 
 
-homepage:            https://github.com/j-mie6/range-set/tree/master
-bug-reports:         https://github.com/j-mie6/range-set/issues
+homepage:            https://github.com/j-mie6/rangeset/tree/master
+bug-reports:         https://github.com/j-mie6/rangeset/issues
 license:             BSD-3-Clause
 license-file:        LICENSE
 author:              Jamie Willis, range-set Contributors
@@ -72,13 +72,13 @@ library
 
 common test-common
   build-depends:       base >=4.10 && <5,
-                       range-set,
+                       rangeset,
                        tasty
   hs-source-dirs:      test
   default-language:    Haskell2010
 
 -- TODO: break this into two groups, one for hunit and the other for quickcheck
-test-suite range-set
+test-suite rangeset
   import:              test-common
   type:                exitcode-stdio-1.0
   build-depends:       tasty-hunit, tasty-quickcheck
@@ -86,7 +86,7 @@ test-suite range-set
 
 common benchmark-common
   build-depends:       base >=4.10 && <5,
-                       range-set,
+                       rangeset,
                        gauge,
                        deepseq
   hs-source-dirs:      benchmarks
@@ -105,4 +105,4 @@ benchmark rangeset-bench
 
 source-repository head
   type:                git
-  location:            https://github.com/j-mie6/range-set
+  location:            https://github.com/j-mie6/rangeset
