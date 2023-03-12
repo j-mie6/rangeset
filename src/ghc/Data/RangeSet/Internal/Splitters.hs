@@ -6,41 +6,40 @@ import Prelude
 import Data.RangeSet.Internal.Types
 import Data.RangeSet.Internal.SmartConstructors
 import Data.RangeSet.Internal.Inserters
-import Data.RangeSet.Internal.Enum
 import Data.RangeSet.Internal.Lumpers
 
 {-# INLINEABLE allLessE #-}
 allLessE :: E -> RangeSet a -> RangeSet a
 allLessE !_ Tip = Tip
-allLessE x (Fork _ _ l u lt rt) = case compare x l of
+allLessE x (Fork _ l u lt rt) = case compare x l of
   EQ          -> lt
   LT          -> allLessE x lt
-  GT | x <= u -> unsafeInsertR (diffE l (pred x)) l (pred x) (allLessE x lt)
+  GT | x <= u -> unsafeInsertR l (pred x) (allLessE x lt)
   GT          -> link l u lt (allLessE x rt)
 
 {-# INLINEABLE allMoreE #-}
 allMoreE :: E -> RangeSet a -> RangeSet a
 allMoreE !_ Tip = Tip
-allMoreE x (Fork _ _ l u lt rt) = case compare u x of
+allMoreE x (Fork _ l u lt rt) = case compare u x of
   EQ          -> rt
   LT          -> allMoreE x rt
-  GT | l <= x -> unsafeInsertL (diffE (succ x) u) (succ x) u (allMoreE x rt)
+  GT | l <= x -> unsafeInsertL (succ x) u (allMoreE x rt)
   GT          -> link l u (allMoreE x lt) rt
 
 {-# INLINEABLE split #-}
 split :: E -> E -> RangeSet a -> (# RangeSet a, RangeSet a #)
 split !_ !_ Tip = (# Tip, Tip #)
-split l u (Fork _ _ l' u' lt rt)
+split l u (Fork _ l' u' lt rt)
   | u < l' = let (# !llt, !lgt #) = split l u lt in (# llt, link l' u' lgt rt #)
   | u' < l = let (# !rlt, !rgt #) = split l u rt in (# link l' u' lt rlt, rgt #)
   -- The ranges overlap in some way
   | otherwise = let !lt' = case compare l' l of
                       EQ -> lt
-                      LT -> unsafeInsertR (diffE l' (pred l)) l' (pred l) lt
+                      LT -> unsafeInsertR l' (pred l) lt
                       GT -> allLessE l lt
                     !rt' = case compare u u' of
                       EQ -> rt
-                      LT -> unsafeInsertL (diffE (succ u) u') (succ u) u' rt
+                      LT -> unsafeInsertL (succ u) u' rt
                       GT -> allMoreE u rt
                 in (# lt', rt' #)
 
@@ -51,34 +50,33 @@ splitOverlap !l !u !t = let (# lt', rt' #) = split l u t in (# lt', overlapping 
 {-# INLINABLE overlapping #-}
 overlapping :: E -> E -> RangeSet a -> RangeSet a
 overlapping !_ !_ Tip = Tip
-overlapping x y (Fork _ sz l u lt rt) =
+overlapping x y (Fork _ l u lt rt) =
   case compare l x of
     -- range is outside to the left
     GT -> let !lt' = {-allMoreEqX-} overlapping x y lt
           in case cmpY of
                -- range is totally outside
-               GT -> disjointLink nodeSz l u lt' rt'
-               EQ -> unsafeInsertR nodeSz l u lt'
-               LT | y >= l -> unsafeInsertR (diffE l y) l y lt'
+               GT -> disjointLink l u lt' rt'
+               EQ -> unsafeInsertR l u lt'
+               LT | y >= l -> unsafeInsertR l y lt'
                LT          -> lt' {-overlapping x y lt-}
     -- range is inside on the left
     EQ -> case cmpY of
       -- range is outside on the right
-      GT -> unsafeInsertL nodeSz l u rt'
+      GT -> unsafeInsertL l u rt'
       LT -> t'
-      EQ -> single nodeSz l u
+      EQ -> single l u
     LT -> case cmpY of
       -- range is outside on the right
-      GT | x <= u -> unsafeInsertL (diffE x u) x u rt'
+      GT | x <= u -> unsafeInsertL x u rt'
       GT          -> rt' {-overlapping x y rt-}
       _           -> t'
   where
     !cmpY = compare y u
-    !nodeSz = sz - size lt - size rt
     -- leave lazy!
     rt' = {-allLessEqY-} overlapping x y rt
     t' :: RangeSet a
-    t' = single (diffE x y) x y
+    t' = single x y
 
     {-allLessEqY Tip = Tip
     allLessEqY (Fork _ sz l u lt rt) = case compare y l of

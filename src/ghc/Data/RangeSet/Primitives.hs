@@ -24,7 +24,7 @@ member !x = go
   where
     !x' = fromEnum x
     go :: RangeSet a -> Bool
-    go (Fork _ _ l u lt rt)
+    go (Fork _ l u lt rt)
       | l <= x'   = x' <= u || go rt
       | otherwise = go lt
     go Tip = False

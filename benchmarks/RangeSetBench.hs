@@ -213,7 +213,7 @@ fillBins = do
   let granulation = 1 % fromIntegral numContBins
   let toRatio = (* granulation) . fromIntegral
   let idxs = map toRatio [0..numContBins-1]
-  print idxs
+  --print idxs
 
   whileS do
     shuffled <- generate (shuffle (elems @a))
@@ -224,7 +224,7 @@ fillBins = do
       binC <- readArray bins idx
       writeArray bins idx (set : binC)
     szs <- map length <$> getElems bins
-    print szs
+    --print szs
     return (any (< binSize) szs)
 
   map (bimap toRatio (map (\(r, xs) -> (r, Set.fromList xs, sort xs)))) <$> getAssocs bins

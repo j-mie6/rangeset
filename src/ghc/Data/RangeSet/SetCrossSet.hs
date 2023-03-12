@@ -14,7 +14,7 @@ will appear in the result set.
 union :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
 union t Tip = t
 union Tip t = t
-union t@(Fork _ _ l u lt rt) t' = case split l u t' of
+union t@(Fork _ l u lt rt) t' = case split l u t' of
   (# lt', rt' #)
     | stayedSame lt ltlt', stayedSame rt rtrt' -> t
     | otherwise                                -> link l u ltlt' rtrt'
@@ -31,14 +31,14 @@ of the provided sets.
 intersection :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
 intersection Tip _ = Tip
 intersection _ Tip = Tip
-intersection t1@(Fork _ _ l1 u1 lt1 rt1) t2 =
+intersection t1@(Fork _ l1 u1 lt1 rt1) t2 =
   case overlap of
     Tip -> disjointMerge lt1lt2 rt1rt2
-    Fork 1 sz x y _ _
+    Fork 1 x y _ _
       | x == l1, y == u1
       , stayedSame lt1 lt1lt2, stayedSame rt1 rt1rt2 -> t1
-      | otherwise -> disjointLink sz x y lt1lt2 rt1rt2
-    Fork _ sz x y lt' rt' -> disjointLink (sz - size lt' - size rt') x y (disjointMerge lt1lt2 lt') (disjointMerge rt' rt1rt2)
+      | otherwise -> disjointLink x y lt1lt2 rt1rt2
+    Fork _ x y lt' rt' -> disjointLink x y (disjointMerge lt1lt2 lt') (disjointMerge rt' rt1rt2)
   where
     (# !lt2, !overlap, !rt2 #) = splitOverlap l1 u1 t2
     !lt1lt2 = intersection lt1 lt2
@@ -53,7 +53,7 @@ Do two sets have no elements in common?
 disjoint :: Enum a => RangeSet a -> RangeSet a -> Bool
 disjoint Tip _ = True
 disjoint _ Tip = True
-disjoint (Fork _ _ l u lt rt) t = case splitOverlap l u t of
+disjoint (Fork _ l u lt rt) t = case splitOverlap l u t of
   (# lt', Tip, rt' #) -> disjoint lt lt' && disjoint rt rt'
   _                   -> False
 
@@ -66,10 +66,8 @@ Removes all elements from the first set that are found in the second set.
 difference :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
 difference Tip _ = Tip
 difference t Tip = t
-difference t (Fork _ _ l u lt rt) = case split l u t of
-  (# lt', rt' #)
-    | size lt'lt + size rt'rt == size t -> t
-    | otherwise -> disjointMerge lt'lt rt'rt
+difference t (Fork _ l u lt rt) = case split l u t of
+  (# lt', rt' #) -> disjointMerge lt'lt rt'rt
     where
       !lt'lt = difference lt' lt
       !rt'rt = difference rt' rt

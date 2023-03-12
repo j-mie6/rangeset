@@ -35,7 +35,7 @@ A `RangeSet` containing a single value.
 @since 0.0.1.0
 -}
 singleton :: Enum a => a -> RangeSet a
-singleton x = single 1 (fromEnum x) (fromEnum x)
+singleton x = single (fromEnum x) (fromEnum x)
 
 {-|
 Is this set empty?
@@ -53,7 +53,7 @@ Is this set full?
 -}
 full :: forall a. (Enum a, Bounded a) => RangeSet a -> Bool
 full Tip = False
-full (Fork _ _ l u _ _) = l == fromEnum @a minBound && fromEnum @a maxBound == u
+full (Fork _ l u _ _) = l == fromEnum @a minBound && fromEnum @a maxBound == u
 
 {-|
 Does this set contain a single element?
@@ -61,7 +61,7 @@ Does this set contain a single element?
 @since 0.0.1.0
 -}
 isSingle :: RangeSet a -> Bool
-isSingle (Fork _ 1 _ _ _ _) = True
+isSingle (Fork 1 l u _ _) = l == u
 isSingle _ = False
 
 {-|
@@ -70,8 +70,8 @@ Possibly extract the element contained in the set if it is a singleton set.
 @since 0.0.1.0
 -}
 extractSingle :: Enum a => RangeSet a -> Maybe a
-extractSingle (Fork _ 1 x _ _ _) = Just (toEnum x)
-extractSingle _                  = Nothing
+extractSingle (Fork 1 x y _ _) | x == y = Just (toEnum x)
+extractSingle _ = Nothing
 
 {-|
 Return the number of /contiguous ranges/ that populate the set.
@@ -98,7 +98,7 @@ Find the minimum value within the set, if one exists.
 {-# INLINE findMin #-}
 findMin :: Enum a => RangeSet a -> Maybe a
 findMin Tip = Nothing
-findMin (Fork _ _ l u lt _) = let (# !m, !_ #) = minRange l u lt in Just (toEnum m)
+findMin (Fork _ l u lt _) = let (# !m, !_ #) = minRange l u lt in Just (toEnum m)
 
 {-|
 Find the maximum value within the set, if one exists.
@@ -108,7 +108,7 @@ Find the maximum value within the set, if one exists.
 {-# INLINE findMax #-}
 findMax :: Enum a => RangeSet a -> Maybe a
 findMax Tip = Nothing
-findMax (Fork _ _ l u _ rt) = let (# !_, !m #) = maxRange l u rt in Just (toEnum m)
+findMax (Fork _ l u _ rt) = let (# !_, !m #) = maxRange l u rt in Just (toEnum m)
 
 {-|
 Filters a set by removing all values greater than or equal to the given value.
@@ -136,18 +136,18 @@ was not an element now is. This is only possible on `Bounded` types.
 -}
 {-# INLINEABLE complement #-}
 complement :: forall a. (Bounded a, Enum a) => RangeSet a -> RangeSet a
-complement Tip = single (diffE minBoundE maxBoundE) minBoundE maxBoundE
+complement Tip = single minBoundE maxBoundE
   where
     !minBoundE = fromEnum @a minBound
     !maxBoundE = fromEnum @a maxBound
 complement t | full t = Tip
-complement t@(Fork _ sz l u lt rt) = case maxl of
-  SJust x -> unsafeInsertR (diffE x maxBoundE) x maxBoundE t'
+complement t@(Fork _ l u lt rt) = case maxl of
+  SJust x -> unsafeInsertR x maxBoundE t'
   SNothing -> t'
   where
     !minBoundE = fromEnum @a minBound
     !maxBoundE = fromEnum @a maxBound
-    (# !minl, !minu, !rest #) = minDelete sz l u lt rt
+    (# !minl, !minu, !rest #) = minDelete l u lt rt
 
     -- The complement of a tree is at most 1 larger or smaller than the original
     -- if both min and max are minBound and maxBound, it will shrink
@@ -166,10 +166,10 @@ complement t@(Fork _ sz l u lt rt) = case maxl of
     -- the return /must/ be the next correct lower bound
     push :: E -> RangeSet a -> (# RangeSet a, StrictMaybeE #)
     push !maxl Tip = (# Tip, SJust maxl #)
-    push min (Fork _ _ u max lt Tip) =
+    push min (Fork _ u max lt Tip) =
       let (# !lt', SJust l #) = push min lt
       in  (# fork l (pred u) lt' Tip, safeSucc max #)
-    push min (Fork _ _ u l' lt rt@Fork{}) =
+    push min (Fork _ u l' lt rt@Fork{}) =
       let (# !lt', SJust l #) = push min lt
           -- this is safe, because we know the right-tree contains elements larger than l'
           !(# !rt', !max #) = push (succ l') rt
