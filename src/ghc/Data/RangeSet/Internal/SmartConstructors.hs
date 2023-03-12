@@ -18,7 +18,7 @@ single !l !u = Fork 1 l u Tip Tip
 heightOfFork :: Int -> Int -> Int
 heightOfFork lh rh = max lh rh + 1
 
-{-# INLINE fork #-} -- this does bad things?
+{-# INLINE fork #-}
 fork :: E -> E -> RangeSet a -> RangeSet a -> RangeSet a
 fork !l !u !lt !rt = forkH l u (height lt) lt (height rt) rt
 
