@@ -10,9 +10,12 @@ import Prelude
 import GHC.Exts (UnliftedType)
 #endif
 
+import GHC.Int (Int8)
+
 import Data.RangeSet.Internal.Unsafe
 
 type E = Int
+type H = Int8 -- Word8 in future, but requires change to the TestingUtils
 {-|
 A @Set@ type designed for types that are `Enum` as well as `Ord`. This allows the `RangeSet` to
 compress the data when it is contiguous, reducing memory-footprint and enabling otherwise impractical
@@ -20,7 +23,7 @@ operations like `complement` for `Bounded` types.
 
 @since 0.0.1.0
 -}
-data RangeSet a = Fork {-# UNPACK #-} !Int {-# UNPACK #-} !E {-# UNPACK #-} !E !(RangeSet a) !(RangeSet a)
+data RangeSet a = Fork {-# UNPACK #-} !H {-# UNPACK #-} !E {-# UNPACK #-} !E !(RangeSet a) !(RangeSet a)
                 | Tip
                 deriving stock Show
 type role RangeSet nominal
@@ -35,7 +38,7 @@ size :: RangeSet a -> Int
 size = foldE (\l u szl szr -> szl + szr + (u - l + 1)) 0
 
 {-# INLINE height #-}
-height :: RangeSet a -> Int
+height :: RangeSet a -> H
 height Tip = 0
 height (Fork h _ _ _ _) = h
 

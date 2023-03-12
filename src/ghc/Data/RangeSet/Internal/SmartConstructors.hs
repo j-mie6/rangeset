@@ -15,7 +15,7 @@ single :: E -> E -> RangeSet a
 single !l !u = Fork 1 l u Tip Tip
 
 {-# INLINE heightOfFork #-}
-heightOfFork :: Int -> Int -> Int
+heightOfFork :: H -> H -> H
 heightOfFork lh rh = max lh rh + 1
 
 {-# INLINE fork #-}
@@ -23,7 +23,7 @@ fork :: E -> E -> RangeSet a -> RangeSet a -> RangeSet a
 fork !l !u !lt !rt = forkH l u (height lt) lt (height rt) rt
 
 {-# INLINE forkH #-}
-forkH :: E -> E -> Int -> RangeSet a -> Int -> RangeSet a -> RangeSet a
+forkH :: E -> E -> H -> RangeSet a -> H -> RangeSet a -> RangeSet a
 forkH !l !u !lh !lt !rh !rt =  Fork (heightOfFork lh rh) l u lt rt
 
 -- Balancers
