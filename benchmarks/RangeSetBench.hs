@@ -51,7 +51,7 @@ main = do
   --print bins
 
   condensedMain [
-      --contiguityBench ratios bins,
+      contiguityBench ratios bins,
       rangeFromList,
       rangeMemberDeleteBench,
       rangeUnionBench,
@@ -236,7 +236,11 @@ contiguityBench ratios bins = es `deepseq` env (return (map unzip3 bins)) $ \dat
   where
     es = elems @a
     mkBench dat (ratio, i) = let ~(rs, ss, xss) = dat !! i in [
-        bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ nf (overheadRangeSetAllMember es) rs,
+        --bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ nf overheadRangeSetFromList xss,
+        --bench ("overhead set-from (" ++ show ratio ++ ")") $ nf overheadSetFromList xss,
+        bench ("rangeset-from (" ++ show ratio ++ ")") $ nf rangeSetFromList xss,
+        bench ("set-from (" ++ show ratio ++ ")") $ nf setFromList xss --,
+        {-bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ nf (overheadRangeSetAllMember es) rs,
         bench ("overhead set-all (" ++ show ratio ++ ")") $ nf (overheadSetAllMember es) ss,
         bench ("rangeset-all (" ++ show ratio ++ ")") $ nf (rangeSetAllMember es) rs,
         bench ("set-all (" ++ show ratio ++ ")") $ nf (setAllMember es) ss,
@@ -247,7 +251,7 @@ contiguityBench ratios bins = es `deepseq` env (return (map unzip3 bins)) $ \dat
         bench ("overhead rangeset-ins (" ++ show ratio ++ ")") $ nf overheadRangeSetInsert xss,
         bench ("overhead set-ins (" ++ show ratio ++ ")") $ nf overheadSetInsert xss,
         bench ("rangeset-ins (" ++ show ratio ++ ")") $ nf rangeSetInsert xss,
-        bench ("set-ins (" ++ show ratio ++ ")") $ nf setInsert xss
+        bench ("set-ins (" ++ show ratio ++ ")") $ nf setInsert xss-}
       ]
 
     overheadRangeSetAllMember :: [a] -> [RangeSet a] -> [Bool]
@@ -285,6 +289,18 @@ contiguityBench ratios bins = es `deepseq` env (return (map unzip3 bins)) $ \dat
 
     setInsert :: [[a]] -> [Set a]
     setInsert = map (foldr Set.insert Set.empty)
+
+    overheadRangeSetFromList :: [[a]] -> [RangeSet a]
+    overheadRangeSetFromList = map (const RangeSet.empty)
+
+    overheadSetFromList :: [[a]] -> [Set a]
+    overheadSetFromList = map (const Set.empty)
+
+    rangeSetFromList :: [[a]] -> [RangeSet a]
+    rangeSetFromList = map RangeSet.fromList
+
+    setFromList :: [[a]] -> [Set a]
+    setFromList = map Set.fromList
 
 makeBench :: NFData a => (a -> String) -> [(String, a -> Benchmarkable)] -> a -> Benchmark
 makeBench caseName cases x = env (return x) (\x ->

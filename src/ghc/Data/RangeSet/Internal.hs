@@ -22,6 +22,7 @@ import Data.RangeSet.Internal.Extractors
 import Data.RangeSet.Internal.Lumpers
 import Data.RangeSet.Internal.Splitters
 import Data.RangeSet.Internal.Heuristics
+import Data.Bits (shiftR)
 
 {-# INLINEABLE insertE #-}
 insertE :: E -> RangeSet a -> RangeSet a
@@ -96,6 +97,7 @@ uncheckedSubsetOf (Fork _ l u lt rt) t = case splitOverlap l u t of
     && uncheckedSubsetOf lt lt' && uncheckedSubsetOf rt rt'
   _                                -> False
 
+{-# INLINEABLE fromDistinctAscRangesSz #-}
 fromDistinctAscRangesSz :: SRangeList -> Int -> RangeSet a
 fromDistinctAscRangesSz rs !n = case go rs 0 (n - 1) of (# t, _ #) -> t
   where
@@ -103,12 +105,14 @@ fromDistinctAscRangesSz rs !n = case go rs 0 (n - 1) of (# t, _ #) -> t
     go rs !i !j
       | i > j     = (# Tip, rs #)
       | otherwise =
-        let !mid = (i + j) `div` 2
+        let !mid = (i + j) `shiftR` 1
         in case go rs i (mid - 1) of
              (# lt, rs' #) ->
                 let !(SRangeCons l u rs'') = rs'
                 in case go rs'' (mid + 1) j of
-                      (# rt, rs''' #) -> (# fork l u lt rt, rs''' #)
+                      -- there is a height bias to the right, so the height of the right tree is all we need
+                      -- perhaps this can be computed though from mid somehow?
+                      (# rt, rs''' #) -> (# Fork (height rt + 1) l u lt rt, rs''' #)
 
 {-# INLINE insertRangeE #-}
 -- This could be improved, but is OK
