@@ -1,4 +1,4 @@
-{-# LANGUAGE DerivingStrategies, RoleAnnotations, CPP, Trustworthy #-}
+{-# LANGUAGE DerivingStrategies, RoleAnnotations, CPP, Trustworthy, BangPatterns #-}
 #if __GLASGOW_HASKELL__ > 900
 {-# LANGUAGE UnliftedDatatypes #-}
 #endif
