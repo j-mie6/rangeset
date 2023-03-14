@@ -61,7 +61,7 @@ type SRangeList :: UnliftedType
 data SRangeList = SRangeCons {-# UNPACK #-} !E {-# UNPACK #-} !E !SRangeList | SNil
 
 absDiff :: H -> H -> H
-absDiff h1 h2
+absDiff !h1 !h2
   | h1 > h2   = h1 - h2
   | otherwise = h2 - h1
 
