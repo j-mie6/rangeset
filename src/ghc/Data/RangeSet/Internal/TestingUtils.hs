@@ -16,7 +16,7 @@ balanced Tip = True
 balanced (Fork h _ _ lt rt) =
   h == max (height lt) (height rt) + 1 &&
   height rt < h &&
-  abs (height lt - height rt) <= 1 &&
+  absDiff (height lt) (height rt) <= 1 &&
   balanced lt &&
   balanced rt
 

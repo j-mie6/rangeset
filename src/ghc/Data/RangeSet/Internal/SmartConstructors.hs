@@ -51,7 +51,7 @@ balanceL !l1 !u1 lt@(Fork lh l2 u2 llt lrt) !rt
   | otherwise  = uncheckedBalanceL l1 u1 l2 u2 llt lrt rt
   where
     !rh = height rt
-    !dltrt = lh - rh
+    !dltrt = absDiff lh rh
 -- If the right shrank (or nothing changed), we have to be prepared to handle the Tip case for lt
 balanceL l u Tip rt = Fork (height rt + 1) l u Tip rt
 
@@ -64,7 +64,7 @@ balanceR !l1 !u1 !lt rt@(Fork rh l2 u2 rlt rrt)
   | otherwise  = uncheckedBalanceR l1 u1 lt l2 u2 rlt rrt
   where
     !lh = height lt
-    !dltrt = rh - lh
+    !dltrt = absDiff rh lh
 -- If the left shrank (or nothing changed), we have to be prepared to handle the Tip case for rt
 balanceR l u lt Tip = Fork (height lt + 1) l u lt Tip
 

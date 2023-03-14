@@ -10,12 +10,12 @@ import Prelude
 import GHC.Exts (UnliftedType)
 #endif
 
-import GHC.Int (Int8)
+import GHC.Word (Word8)
 
 import Data.RangeSet.Internal.Unsafe
 
 type E = Int
-type H = Int8 -- Word8 in future, but requires change to the TestingUtils
+type H = Word8
 {-|
 A @Set@ type designed for types that are `Enum` as well as `Ord`. This allows the `RangeSet` to
 compress the data when it is contiguous, reducing memory-footprint and enabling otherwise impractical
@@ -60,11 +60,15 @@ type SRangeList :: UnliftedType
 #endif
 data SRangeList = SRangeCons {-# UNPACK #-} !E {-# UNPACK #-} !E !SRangeList | SNil
 
+absDiff :: H -> H -> H
+absDiff h1 h2
+  | h1 > h2   = h1 - h2
+  | otherwise = h2 - h1
+
 -- Instances
--- TODO: Make better instance
 instance Eq (RangeSet a) where
   {-# INLINABLE (==) #-}
-  t1 == t2 = ptrEq t1 t2 || ranges t1 == ranges t2
+  t1 == t2 = ptrEq t1 t2 || (absDiff (height t1) (height t2) <= 1 && ranges t1 == ranges t2)
     where
       {-# INLINE ranges #-}
       ranges :: RangeSet a -> [(E, E)]
