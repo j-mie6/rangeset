@@ -229,6 +229,12 @@ fillBins = do
 
   map (bimap toRatio (map (\(r, xs) -> (r, Set.fromList xs, sort xs)))) <$> getAssocs bins
 
+shallowForce :: [a] -> [a]
+shallowForce xs = go xs xs
+  where
+    go [] xs = xs
+    go ((!x) : (!xs)) orig = go xs orig
+
 contiguityBench :: forall a. (NFData a, Ord a, Enum a, Generic a) => [Rational] -> [[(RangeSet a, Set a, [a])]] -> Benchmark
 contiguityBench ratios bins = es `deepseq` env (return (map unzip3 bins)) $ \dat ->
     bgroup "contiguity" (concatMap (mkBench dat) (zip ratios [0..]))
@@ -236,71 +242,71 @@ contiguityBench ratios bins = es `deepseq` env (return (map unzip3 bins)) $ \dat
   where
     es = elems @a
     mkBench dat (ratio, i) = let ~(rs, ss, xss) = dat !! i in [
-        --bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ nf overheadRangeSetFromList xss,
-        --bench ("overhead set-from (" ++ show ratio ++ ")") $ nf overheadSetFromList xss,
-        bench ("rangeset-from (" ++ show ratio ++ ")") $ nf rangeSetFromList xss,
-        bench ("set-from (" ++ show ratio ++ ")") $ nf setFromList xss --,
-        {-bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ nf (overheadRangeSetAllMember es) rs,
-        bench ("overhead set-all (" ++ show ratio ++ ")") $ nf (overheadSetAllMember es) ss,
-        bench ("rangeset-all (" ++ show ratio ++ ")") $ nf (rangeSetAllMember es) rs,
-        bench ("set-all (" ++ show ratio ++ ")") $ nf (setAllMember es) ss,
-        bench ("overhead rangeset-mem (" ++ show ratio ++ ")") $ nf (uncurry overheadRangeSetMember) (xss, rs),
-        bench ("overhead set-mem (" ++ show ratio ++ ")") $ nf (uncurry overheadSetMember) (xss, ss),
-        bench ("rangeset-mem (" ++ show ratio ++ ")") $ nf (uncurry rangeSetMember) (xss, rs),
-        bench ("set-mem (" ++ show ratio ++ ")") $ nf (uncurry setMember) (xss, ss),
-        bench ("overhead rangeset-ins (" ++ show ratio ++ ")") $ nf overheadRangeSetInsert xss,
-        bench ("overhead set-ins (" ++ show ratio ++ ")") $ nf overheadSetInsert xss,
-        bench ("rangeset-ins (" ++ show ratio ++ ")") $ nf rangeSetInsert xss,
-        bench ("set-ins (" ++ show ratio ++ ")") $ nf setInsert xss-}
+        bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ whnf overheadRangeSetFromList xss,
+        bench ("overhead set-from (" ++ show ratio ++ ")") $ whnf overheadSetFromList xss,
+        bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList xss,
+        bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList xss,
+        bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ whnf (overheadRangeSetAllMember es) rs,
+        bench ("overhead set-all (" ++ show ratio ++ ")") $ whnf (overheadSetAllMember es) ss,
+        bench ("rangeset-all (" ++ show ratio ++ ")") $ whnf (rangeSetAllMember es) rs,
+        bench ("set-all (" ++ show ratio ++ ")") $ whnf (setAllMember es) ss,
+        bench ("overhead rangeset-mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadRangeSetMember) (xss, rs),
+        bench ("overhead set-mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadSetMember) (xss, ss),
+        bench ("rangeset-mem (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetMember) (xss, rs),
+        bench ("set-mem (" ++ show ratio ++ ")") $ whnf (uncurry setMember) (xss, ss),
+        bench ("overhead rangeset-ins (" ++ show ratio ++ ")") $ whnf overheadRangeSetInsert xss,
+        bench ("overhead set-ins (" ++ show ratio ++ ")") $ whnf overheadSetInsert xss,
+        bench ("rangeset-ins (" ++ show ratio ++ ")") $ whnf rangeSetInsert xss,
+        bench ("set-ins (" ++ show ratio ++ ")") $ whnf setInsert xss
       ]
 
     overheadRangeSetAllMember :: [a] -> [RangeSet a] -> [Bool]
-    overheadRangeSetAllMember !elems rs = [False | r <- rs, x <- elems]
+    overheadRangeSetAllMember !elems rs = shallowForce [False | r <- rs, x <- elems]
 
     overheadSetAllMember :: [a] -> [Set a] -> [Bool]
-    overheadSetAllMember !elems ss = [False | s <- ss, x <- elems]
+    overheadSetAllMember !elems ss = shallowForce [False | s <- ss, x <- elems]
 
     rangeSetAllMember :: [a] -> [RangeSet a] -> [Bool]
-    rangeSetAllMember !elems rs = [RangeSet.member x r | r <- rs, x <- elems]
+    rangeSetAllMember !elems rs = shallowForce [RangeSet.member x r | r <- rs, x <- elems]
 
     setAllMember :: [a] -> [Set a] -> [Bool]
-    setAllMember !elems ss = [Set.member x s | s <- ss, x <- elems]
+    setAllMember !elems ss = shallowForce [Set.member x s | s <- ss, x <- elems]
 
     overheadRangeSetMember :: [[a]] -> [RangeSet a] -> [Bool]
-    overheadRangeSetMember xss rs = [False | (r, xs) <- zip rs xss, x <- xs]
+    overheadRangeSetMember xss rs = shallowForce [False | (r, xs) <- zip rs xss, x <- xs]
 
     overheadSetMember :: [[a]] -> [Set a] -> [Bool]
-    overheadSetMember xss ss = [False | (s, xs) <- zip ss xss, x <- xs]
+    overheadSetMember xss ss = shallowForce [False | (s, xs) <- zip ss xss, x <- xs]
 
     rangeSetMember :: [[a]] -> [RangeSet a] -> [Bool]
-    rangeSetMember xss rs = [RangeSet.member x r | (r, xs) <- zip rs xss, x <- xs]
+    rangeSetMember xss rs = shallowForce [RangeSet.member x r | (r, xs) <- zip rs xss, x <- xs]
 
     setMember :: [[a]] -> [Set a] -> [Bool]
-    setMember xss ss = [Set.member x s | (s, xs) <- zip ss xss, x <- xs]
+    setMember xss ss = shallowForce [Set.member x s | (s, xs) <- zip ss xss, x <- xs]
 
     overheadRangeSetInsert :: [[a]] -> [RangeSet a]
-    overheadRangeSetInsert = map (foldr (flip const) RangeSet.empty)
+    overheadRangeSetInsert = shallowForce . map (foldr (flip const) RangeSet.empty)
 
     overheadSetInsert :: [[a]] -> [Set a]
-    overheadSetInsert = map (foldr (flip const) Set.empty)
+    overheadSetInsert = shallowForce . map (foldr (flip const) Set.empty)
 
     rangeSetInsert :: [[a]] -> [RangeSet a]
-    rangeSetInsert = map (foldr RangeSet.insert RangeSet.empty)
+    rangeSetInsert = shallowForce . map (foldr RangeSet.insert RangeSet.empty)
 
     setInsert :: [[a]] -> [Set a]
-    setInsert = map (foldr Set.insert Set.empty)
+    setInsert = shallowForce . map (foldr Set.insert Set.empty)
 
     overheadRangeSetFromList :: [[a]] -> [RangeSet a]
-    overheadRangeSetFromList = map (const RangeSet.empty)
+    overheadRangeSetFromList = shallowForce . map (const RangeSet.empty)
 
     overheadSetFromList :: [[a]] -> [Set a]
-    overheadSetFromList = map (const Set.empty)
+    overheadSetFromList = shallowForce . map (const Set.empty)
 
     rangeSetFromList :: [[a]] -> [RangeSet a]
-    rangeSetFromList = map RangeSet.fromList
+    rangeSetFromList = shallowForce . map RangeSet.fromList
 
     setFromList :: [[a]] -> [Set a]
-    setFromList = map Set.fromList
+    setFromList = shallowForce . map Set.fromList
 
 makeBench :: NFData a => (a -> String) -> [(String, a -> Benchmarkable)] -> a -> Benchmark
 makeBench caseName cases x = env (return x) (\x ->

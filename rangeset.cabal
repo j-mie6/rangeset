@@ -97,6 +97,14 @@ benchmark rangeset-bench
   main-is:             RangeSetBench.hs
   --other-modules:       Data.EnumSet
 
+benchmark complexity-bench
+  import:              benchmark-common
+  type:                exitcode-stdio-1.0
+  build-depends:       array,
+                       random-shuffle,
+                       containers,
+  main-is:             ComplexityBench.hs
+
 source-repository head
   type:                git
   location:            https://github.com/j-mie6/rangeset
