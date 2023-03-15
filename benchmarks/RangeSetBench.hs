@@ -31,7 +31,7 @@ main :: IO ()
 main = do
   xss <- forM [1..10] $ \n -> generate (vectorOf (n * 10) (chooseInt (0, n * 20)))
 
-  condensedMain [
+  condensedMain Nothing [
       rangeFromList,
       rangeMemberDeleteBench,
       rangeUnionBench,

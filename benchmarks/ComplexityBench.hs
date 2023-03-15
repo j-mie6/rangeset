@@ -42,7 +42,7 @@ main = do
   xss <- replicateM 16 (shuffleM xs)
   yss <- replicateM 4 (shuffleM ys)
   zss <- replicateM 4 (shuffleM zs)
-  condensedMain [
+  condensedMain (Just "complexity.csv") [
       insert xss{-,
       delete xss,
       union yss zss-}
@@ -61,14 +61,8 @@ insert xss =
 
     prepare (x:xs) = (x, RangeSet.fromList xs)
 
-    insertF = shallowForce . map (uncurry RangeSet.insert)
+    insertF = nfList . map (uncurry RangeSet.insert)
     nothingF = snd
-
-shallowForce :: [a] -> [a]
-shallowForce xs = go xs xs
-  where
-    go [] xs = xs
-    go ((!x) : (!xs)) orig = go xs orig
 
 {-delete :: [[Int]] -> Benchmark
 delete xss =

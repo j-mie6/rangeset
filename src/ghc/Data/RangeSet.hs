@@ -78,8 +78,8 @@ Return the number of /contiguous ranges/ that populate the set.
 
 @since 0.0.1.0
 -}
-sizeRanges :: Enum a => RangeSet a -> Int
-sizeRanges = fold (\_ _ szl szr -> szl + szr + 1) 0
+sizeRanges :: RangeSet a -> Int
+sizeRanges = foldE (\_ _ szl szr -> szl + szr + 1) 0
 
 {-|
 Test whether or not a given value is not found within the set.
