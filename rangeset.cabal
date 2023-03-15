@@ -108,6 +108,7 @@ benchmark contiguity-bench
   type:                exitcode-stdio-1.0
   build-depends:       containers,
                        random-shuffle,
+                       random,
                        array,
                        selective
   main-is:             ContiguityBench.hs

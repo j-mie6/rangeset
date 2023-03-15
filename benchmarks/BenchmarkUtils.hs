@@ -9,7 +9,7 @@ condensedMain csv = defaultMainWith $ defaultConfig { displayMode = Condensed
                                                     , timeLimit = Just 60
                                                     , includeFirstIter = False
                                                     , csvFile = csv
-                                                    {-, iters = Just 100-}
+                                                    --, iters = Just 100
                                                     }
 
 nfList :: [a] -> [a]
