@@ -117,10 +117,10 @@ contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip4 bins)) $ 
   where
     --es = elems @a
     mkBench dat (ratio, i) = let ~(rs, ss, xss, sxss) = dat !! i in [
-        bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ whnf overheadRangeSetFromList xss,
-        bench ("overhead set-from (" ++ show ratio ++ ")") $ whnf overheadSetFromList xss,
-        bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList xss,
-        bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList xss,
+        bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ whnf overheadRangeSetFromList sxss,
+        bench ("overhead set-from (" ++ show ratio ++ ")") $ whnf overheadSetFromList sxss,
+        bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList sxss,
+        bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList sxss,
         --bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ whnf (overheadRangeSetAllMember es) rs,
         --bench ("overhead set-all (" ++ show ratio ++ ")") $ whnf (overheadSetAllMember es) ss,
         --bench ("rangeset-all (" ++ show ratio ++ ")") $ whnf (rangeSetAllMember es) rs,
