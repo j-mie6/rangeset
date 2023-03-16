@@ -68,12 +68,12 @@ numContBins :: Int
 numContBins = 20
 
 binSize :: Int
-binSize = 100
+binSize = 50 --100 for full bench
 
 approxSetSize :: Int
 approxSetSize = 1000
 
-fillBins' :: forall a. (Ord a, Enum a, Bounded a, Num a, UniformRange a) => IO [(Rational, [(RangeSet a, Set a, [a])])]
+fillBins' :: forall a. (Ord a, Enum a, Bounded a, Num a, UniformRange a) => IO [(Rational, [(RangeSet a, Set a, [a], [a])])]
 fillBins' =
   do let granulation = 1 % fromIntegral numContBins
      let toRatio = (* granulation) . fromIntegral
@@ -88,7 +88,7 @@ fillBins' =
           -- invariant for the other benchmarks
           shift <- uniformRM (0, fromIntegral approxSetSize) globalStdGen :: IO a
           return (map (+ shift) xs')
-        return (c, map (\xs -> (RangeSet.fromList xs, Set.fromList xs, xs)) xss)
+        return (c, map (\xs -> (RangeSet.fromList xs, Set.fromList xs, xs, sort xs)) xss)
 
 buildWithContiguity :: forall a. (Bounded a, Enum a) => Int -> Rational -> [a]
 buildWithContiguity atLeast c = go [minBound @a .. maxBound @a] ranges
@@ -110,17 +110,17 @@ buildWithContiguity atLeast c = go [minBound @a .. maxBound @a] ranges
     numSmall = numSmallUnscaled * scale
     bigSize = smallSize + 1
 
-contiguityBench :: forall a. (NFData a, Ord a, Enum a, Generic a) => [Rational] -> [[(RangeSet a, Set a, [a])]] -> Benchmark
-contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip3 bins)) $ \dat ->
+contiguityBench :: forall a. (NFData a, Ord a, Enum a, Generic a) => [Rational] -> [[(RangeSet a, Set a, [a], [a])]] -> Benchmark
+contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip4 bins)) $ \dat ->
     bgroup "contiguity" (concatMap (mkBench dat) (zip ratios [0..]))
 
   where
     --es = elems @a
-    mkBench dat (ratio, i) = let ~(rs, ss, xss) = dat !! i in [
-        --bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ whnf overheadRangeSetFromList xss,
-        --bench ("overhead set-from (" ++ show ratio ++ ")") $ whnf overheadSetFromList xss,
-        --bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList xss,
-        --bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList xss,
+    mkBench dat (ratio, i) = let ~(rs, ss, xss, sxss) = dat !! i in [
+        bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ whnf overheadRangeSetFromList xss,
+        bench ("overhead set-from (" ++ show ratio ++ ")") $ whnf overheadSetFromList xss,
+        bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList xss,
+        bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList xss,
         --bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ whnf (overheadRangeSetAllMember es) rs,
         --bench ("overhead set-all (" ++ show ratio ++ ")") $ whnf (overheadSetAllMember es) ss,
         --bench ("rangeset-all (" ++ show ratio ++ ")") $ whnf (rangeSetAllMember es) rs,
@@ -145,10 +145,14 @@ contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip3 bins)) $ 
         bench ("overhead set-ins (" ++ show ratio ++ ")") $ whnf overheadSetInsert xss,
         bench ("rangeset-ins (" ++ show ratio ++ ")") $ whnf rangeSetInsert xss,
         bench ("set-ins (" ++ show ratio ++ ")") $ whnf setInsert xss,
+        bench ("rangeset-ins-sorted (" ++ show ratio ++ ")") $ whnf rangeSetInsert sxss,
+        bench ("set-ins-sorted (" ++ show ratio ++ ")") $ whnf setInsert sxss,
         bench ("overhead rangeset-del (" ++ show ratio ++ ")") $ whnf (uncurry overheadRangeSetDelete) (xss, rs),
         bench ("overhead set-del (" ++ show ratio ++ ")") $ whnf (uncurry overheadSetDelete) (xss, ss),
         bench ("rangeset-del (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetDelete) (xss, rs),
-        bench ("set-del (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (xss, ss)
+        bench ("set-del (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (xss, ss),
+        bench ("rangeset-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetDelete) (sxss, rs),
+        bench ("set-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (sxss, ss)
       ]
 
     overheadRangeSetAllMember :: [a] -> [RangeSet a] -> [Bool]
@@ -257,7 +261,7 @@ minElem = toEnum 0
 elems :: forall a. Enum a => [a]
 elems = [minElem @a .. maxElem @a]
 
-fillBins :: forall a. (Ord a, Enum a) => IO [(Rational, [(RangeSet a, Set a, [a])])]
+fillBins :: forall a. (Ord a, Enum a) => IO [(Rational, [(RangeSet a, Set a, [a], [a])])]
 fillBins = do
   bins <- newArray (0, numContBins-1) [] :: IO (IOArray Int [(RangeSet a, [a])])
   let granulation = 1 % fromIntegral numContBins
@@ -278,4 +282,4 @@ fillBins = do
     print szs
     return (any (< binSize) szs)
 
-  map (bimap toRatio (map (\(r, xs) -> (r, Set.fromList xs, sort xs)))) <$> getAssocs bins-}
+  map (bimap toRatio (map (\(r, xs) -> (r, Set.fromList xs, xs, sort xs)))) <$> getAssocs bins-}
