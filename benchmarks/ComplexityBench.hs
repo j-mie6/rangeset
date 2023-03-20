@@ -88,14 +88,11 @@ mkBench name f xs ys =
   env (return dat) $ \edat -> bgroup name (map (fbench edat) is)
   where
     dat :: Array (Int, Int) (RangeSet Int, RangeSet Int)
-    !dat = array ((0, 0), (n, n)) [((i, j), (x, y)) | (i, x) <- zip [0..n] (RangeSet.singleton (negate 4) : xsc), (j, y) <- zip [0..n] (RangeSet.singleton (negate 2) : ysc)]
+    !dat = array ((1, 1), (n, n)) [((i, j), (x, y)) | (i, x) <- zip [1..n] xsc, (j, y) <- zip [1..n] ysc]
     xsc = (map RangeSet.fromList . chunks n) xs
     ysc = (map RangeSet.fromList . chunks n) ys
     !is = force (indices dat)
     n = 10
     !sz = length xs `div` n
 
-    fbench dat ij@(0, 0)    = bench (show (1, 1)) (whnf (uncurry f) (dat ! ij))
-    fbench dat ij@(0, j)    = bench (show (1, j * sz)) (whnf (uncurry f) (dat ! ij))
-    fbench dat ij@(i, 0) = bench (show (i * sz, 1)) (whnf (uncurry f) (dat ! ij))
     fbench dat ij@(i, j) = bench (show (i * sz, j * sz)) (whnf (uncurry f) (dat ! ij))
