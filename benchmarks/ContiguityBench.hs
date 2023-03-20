@@ -68,7 +68,7 @@ numContBins :: Int
 numContBins = 20
 
 binSize :: Int
-binSize = 50 --100 for full bench
+binSize = 100 --for full bench
 
 approxSetSize :: Int
 approxSetSize = 1000

@@ -6,7 +6,7 @@ import Gauge.Main.Options (Config(..), defaultConfig, DisplayMode(Condensed), Ve
 
 condensedMain :: Maybe FilePath -> [Benchmark] -> IO ()
 condensedMain csv = defaultMainWith $ defaultConfig { displayMode = Condensed
-                                                    , timeLimit = Just 60
+                                                    , timeLimit = Just 50
                                                     , includeFirstIter = False
                                                     , csvFile = csv
                                                     --, iters = Just 100

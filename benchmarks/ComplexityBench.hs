@@ -20,7 +20,7 @@ import qualified Data.Set as Set
 
 import Data.Array
 
-import Data.List (foldl')
+import Data.List (foldl', transpose)
 
 deriving instance (Generic a, NFData a) => NFData (RangeSet a)
 deriving instance Generic a => Generic (RangeSet a)
@@ -40,16 +40,21 @@ chunks n xs = reverse (take n (iterate (drop (m `div` n)) xs))
 main :: IO ()
 main = do
   xss <- replicateM 16 (shuffleM xs)
-  yss <- replicateM 4 (shuffleM ys)
-  zss <- replicateM 4 (shuffleM zs)
+  --yss <- replicateM 4 (shuffleM ys)
+  --zss <- replicateM 4 (shuffleM zs)
+
+  ys' <- shuffleM ys
+  zs' <- shuffleM zs
+
   condensedMain (Just "complexity.csv") [
-      insert xss{-,
-      delete xss,
-      union yss zss-}
+      --insertB xss
+        unionB ys' zs'
+      , intersectB ys' zs'
+      , differenceB ys' zs'
     ]
 
-insert :: [[Int]] -> Benchmark
-insert xss =
+{-insertB :: [[Int]] -> Benchmark
+insertB xss =
   env (return dat) $ \edat -> bgroup "RangeSet.insert" (map (fbench edat) is)
   where
     !dat = listArray (0, n-1) (map (map prepare) (chunks n xss))
@@ -62,23 +67,31 @@ insert xss =
     prepare (x:xs) = (x, RangeSet.fromList xs)
 
     insertF = nfList . map (uncurry RangeSet.insert)
-    nothingF = snd
+    nothingF = snd-}
 
-{-delete :: [[Int]] -> Benchmark
-delete xss =
-  env (return xss) $ \xss -> bench "RangeSet.delete" (nf deleteF xss)
+unionB :: [Int] -> [Int] -> Benchmark
+unionB = mkBench "RangeSet.union" RangeSet.union
+
+intersectB :: [Int] -> [Int] -> Benchmark
+intersectB = mkBench "RangeSet.intersection" RangeSet.intersection
+
+differenceB :: [Int] -> [Int] -> Benchmark
+differenceB = mkBench "RangeSet.difference" RangeSet.difference
+
+{-# INLINE mkBench #-}
+mkBench :: String -> (RangeSet Int -> RangeSet Int -> RangeSet Int) -> [Int] -> [Int] -> Benchmark
+mkBench name f xs ys =
+  env (return dat) $ \edat -> bgroup name (map (fbench edat) is)
   where
-    deleteF :: [[Int]] -> [RangeSet Int]
-    deleteF = map (\xs -> foldl' (flip RangeSet.delete) (RangeSet.fromList xs) xs)
+    dat :: Array (Int, Int) (RangeSet Int, RangeSet Int)
+    !dat = array ((0, 0), (n, n)) [((i, j), (x, y)) | (i, x) <- zip [0..n] (RangeSet.singleton (negate 4) : xsc), (j, y) <- zip [0..n] (RangeSet.singleton (negate 2) : ysc)]
+    xsc = (map RangeSet.fromList . chunks n) xs
+    ysc = (map RangeSet.fromList . chunks n) ys
+    !is = force (indices dat)
+    n = 10
+    !sz = length xs `div` n
 
-union :: [[Int]] -> [[Int]] -> Benchmark
-union yss zss =
-  env (return (map RangeSet.fromList yss, map RangeSet.fromList zss)) $ \env ->
-    bench "RangeSet.union" (nf (uncurry unionF) env)
-  where
-    unionF :: [RangeSet Int] -> [RangeSet Int] -> [RangeSet Int]
-    unionF yss zss = RangeSet.union <$> yss <*> zss
-
-makeBench :: NFData a => (a -> String) -> [(String, a -> Benchmarkable)] -> a -> Benchmark
-makeBench caseName cases x = env (return x) (\x ->
-  bgroup (caseName x) (map (\(name, gen) -> bench name $ gen x) cases))-}
+    fbench dat ij@(0, 0)    = bench (show (1, 1)) (whnf (uncurry f) (dat ! ij))
+    fbench dat ij@(0, j)    = bench (show (1, j * sz)) (whnf (uncurry f) (dat ! ij))
+    fbench dat ij@(i, 0) = bench (show (i * sz, 1)) (whnf (uncurry f) (dat ! ij))
+    fbench dat ij@(i, j) = bench (show (i * sz, j * sz)) (whnf (uncurry f) (dat ! ij))

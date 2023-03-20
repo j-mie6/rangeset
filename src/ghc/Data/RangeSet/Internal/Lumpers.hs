@@ -55,13 +55,17 @@ disjointMerge lt Tip = lt
 disjointMerge lt@(Fork hl ll lu llt lrt) rt@(Fork hr rl ru rlt rrt)
   | hl < hr + 1 = balanceL rl ru (disjointMerge lt rlt) rrt
   | hr < hl + 1 = balanceR ll lu llt (disjointMerge lrt rt)
-  | otherwise   = glue lt rt
+  | otherwise   = glue' lt hl ll lu llt lrt rt hr rl ru rlt rrt
 
 -- Trees must be balanced with respect to eachother, since we pull from the tallest, no balancing is required
 {-# INLINEABLE glue #-}
 glue :: RangeSet a -> RangeSet a -> RangeSet a
 glue Tip rt = rt
 glue lt Tip  = lt
-glue lt@(Fork lh ll lu llt lrt) rt@(Fork rh rl ru rlt rrt)
+glue lt@(Fork lh ll lu llt lrt) rt@(Fork rh rl ru rlt rrt) = glue' lt lh ll lu llt lrt rt rh rl ru rlt rrt
+
+{-# INLINEABLE glue' #-}
+glue' :: RangeSet a -> H -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a -> H -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
+glue' lt lh ll lu llt lrt rt rh rl ru rlt rrt
   | lh < rh = let (# !l, !u, !rt' #) = minDelete rl ru rlt rrt in fork l u lt rt'
   | otherwise = let (# !l, !u, !lt' #) = maxDelete ll lu llt lrt in fork l u lt' rt

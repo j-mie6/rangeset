@@ -44,6 +44,7 @@ split l u (Fork _ l' u' lt rt)
                 in (# lt', rt' #)
 
 {-# INLINE splitOverlap #-}
+-- TODO: the double iteration here slows down intersection... can we fuse the iterations of split and overlapping?
 splitOverlap :: E -> E -> RangeSet a -> (# RangeSet a, RangeSet a, RangeSet a #)
 splitOverlap !l !u !t = let (# lt', rt' #) = split l u t in (# lt', overlapping l u t, rt' #)
 
