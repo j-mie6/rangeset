@@ -50,7 +50,7 @@ main = do
       bgroup "disjoint" [ unionB ys' zs'
                         , intersectB ys' zs'
                         , differenceB ys' zs'
-                        ]
+                        ],
       bgroup "overlap"  [ unionB ys' ys'
                         , intersectB ys' ys'
                         , differenceB ys' ys'
