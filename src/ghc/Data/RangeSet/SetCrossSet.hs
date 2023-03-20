@@ -10,6 +10,7 @@ will appear in the result set.
 
 @since 0.0.1.0
 -}
+-- TODO: could improve performance by pulling the same trick as intersection, but much more minor!
 union :: RangeSet a -> RangeSet a -> RangeSet a
 union t Tip = t
 union Tip t = t
