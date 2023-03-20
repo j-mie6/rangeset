@@ -39,7 +39,7 @@ chunks n xs = reverse (take n (iterate (drop (m `div` n)) xs))
 
 main :: IO ()
 main = do
-  xss <- replicateM 16 (shuffleM xs)
+  --xss <- replicateM 16 (shuffleM xs)
   --yss <- replicateM 4 (shuffleM ys)
   --zss <- replicateM 4 (shuffleM zs)
 
@@ -47,10 +47,14 @@ main = do
   zs' <- shuffleM zs
 
   condensedMain (Just "complexity.csv") [
-      --insertB xss
-        unionB ys' zs'
-      , intersectB ys' zs'
-      , differenceB ys' zs'
+      bgroup "disjoint" [ unionB ys' zs'
+                        , intersectB ys' zs'
+                        , differenceB ys' zs'
+                        ]
+      bgroup "overlap"  [ unionB ys' ys'
+                        , intersectB ys' ys'
+                        , differenceB ys' ys'
+                        ]
     ]
 
 {-insertB :: [[Int]] -> Benchmark
