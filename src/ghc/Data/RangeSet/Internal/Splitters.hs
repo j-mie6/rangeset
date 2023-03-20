@@ -29,7 +29,11 @@ allMoreE x (Fork _ l u lt rt) = case compare u x of
 {-# INLINEABLE split #-}
 split :: E -> E -> RangeSet a -> (# RangeSet a, RangeSet a #)
 split !_ !_ Tip = (# Tip, Tip #)
-split l u (Fork _ l' u' lt rt)
+split l u (Fork _ l' u' lt rt) = splitFork l u l' u' lt rt
+
+{-# INLINEABLE splitFork #-}
+splitFork :: E -> E -> E -> E -> RangeSet a -> RangeSet a -> (# RangeSet a, RangeSet a #)
+splitFork l u l' u' lt rt
   | u < l' = let (# !llt, !lgt #) = split l u lt in (# llt, link l' u' lgt rt #)
   | u' < l = let (# !rlt, !rgt #) = split l u rt in (# link l' u' lt rlt, rgt #)
   -- The ranges overlap in some way
@@ -43,15 +47,20 @@ split l u (Fork _ l' u' lt rt)
                       GT -> allMoreE u rt
                 in (# lt', rt' #)
 
-{-# INLINE splitOverlap #-}
+{-# INLINE splitOverlapFork #-}
 -- TODO: the double iteration here slows down intersection... can we fuse the iterations of split and overlapping?
-splitOverlap :: E -> E -> RangeSet a -> (# RangeSet a, RangeSet a, RangeSet a #)
-splitOverlap !l !u !t = let (# lt', rt' #) = split l u t in (# lt', overlapping l u t, rt' #)
+splitOverlapFork :: E -> E -> E -> E -> RangeSet a -> RangeSet a -> (# RangeSet a, RangeSet a, RangeSet a #)
+splitOverlapFork !l !u !l' !u' !lt !rt =
+  let (# lt', rt' #) = splitFork l u l' u' lt rt  in (# lt', overlappingFork l u l' u' lt rt, rt' #)
 
 {-# INLINABLE overlapping #-}
 overlapping :: E -> E -> RangeSet a -> RangeSet a
 overlapping !_ !_ Tip = Tip
-overlapping x y (Fork _ l u lt rt) =
+overlapping x y (Fork _ l u lt rt) = overlappingFork x y l u lt rt
+
+{-# INLINABLE overlappingFork #-}
+overlappingFork :: E -> E -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
+overlappingFork x y l u lt rt =
   case compare l x of
     -- range is outside to the left
     GT -> let !lt' = {-allMoreEqX-} overlapping x y lt

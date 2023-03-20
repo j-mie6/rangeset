@@ -10,16 +10,15 @@ will appear in the result set.
 
 @since 0.0.1.0
 -}
-{-# INLINABLE union #-}
-union :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
+union :: RangeSet a -> RangeSet a -> RangeSet a
 union t Tip = t
 union Tip t = t
-union t@(Fork _ l u lt rt) t' = case split l u t' of
+union t@(Fork _ ll lu llt lrt) (Fork _ rl ru rlt rrt) = case splitFork ll lu rl ru rlt rrt of
   (# lt', rt' #)
-    | stayedSame lt ltlt', stayedSame rt rtrt' -> t
-    | otherwise                                -> link l u ltlt' rtrt'
-    where !ltlt' = lt `union` lt'
-          !rtrt' = rt `union` rt'
+    | stayedSame llt ltlt', stayedSame lrt rtrt' -> t
+    | otherwise                                  -> link ll lu ltlt' rtrt'
+    where !ltlt' = llt `union` lt'
+          !rtrt' = lrt `union` rt'
 
 {-|
 Intersects two sets such that an element appears in the result if and only if it is present in both
@@ -27,34 +26,43 @@ of the provided sets.
 
 @since 0.0.1.0
 -}
-{-# INLINABLE intersection #-}
-intersection :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
-intersection Tip _ = Tip
-intersection _ Tip = Tip
-intersection t1@(Fork _ l1 u1 lt1 rt1) t2 =
-  case overlap of
-    Tip -> disjointMerge lt1lt2 rt1rt2
-    Fork 1 x y _ _
-      | x == l1, y == u1
-      , stayedSame lt1 lt1lt2, stayedSame rt1 rt1rt2 -> t1
-      | otherwise -> disjointLink x y lt1lt2 rt1rt2
-    Fork _ x y lt' rt' -> disjointLink x y (disjointMerge lt1lt2 lt') (disjointMerge rt' rt1rt2)
+intersection :: RangeSet a -> RangeSet a -> RangeSet a
+intersection = optimalForHeight
   where
-    (# !lt2, !overlap, !rt2 #) = splitOverlap l1 u1 t2
-    !lt1lt2 = intersection lt1 lt2
-    !rt1rt2 = intersection rt1 rt2
+    -- until splitOverlapFork is optimised, this picks the best configuration for performance
+    -- this is because more work is done on the right tree than the left tree, so making the
+    -- right tree the shallowest saves work in long run
+    optimalForHeight :: RangeSet a -> RangeSet a -> RangeSet a
+    optimalForHeight Tip _ = Tip
+    optimalForHeight _ Tip = Tip
+    optimalForHeight lt@(Fork lh ll lu llt lrt) rt@(Fork rh rl ru rlt rrt)
+      | lh < rh = doIntersect rt rl ru rlt rrt ll lu llt lrt
+      | otherwise = doIntersect lt ll lu llt lrt rl ru rlt rrt
+
+    doIntersect :: RangeSet a -> E -> E -> RangeSet a -> RangeSet a -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
+    doIntersect !lt !ll !lu !llt !lrt !rl !ru !rlt !rrt =
+      case overlap of
+        Tip -> disjointMerge lltrlt lrtrrt
+        Fork 1 x y _ _
+          | x == ll, y == lu
+          , stayedSame llt lltrlt, stayedSame lrt lrtrrt -> lt
+          | otherwise -> disjointLink x y lltrlt lrtrrt
+        Fork _ x y lt' rt' -> disjointLink x y (disjointMerge lltrlt lt') (disjointMerge rt' lrtrrt)
+      where
+        (# !lt', !overlap, !rt' #) = splitOverlapFork ll lu rl ru rlt rrt
+        !lltrlt = optimalForHeight llt lt'
+        !lrtrrt = optimalForHeight lrt rt'
 
 {-|
 Do two sets have no elements in common?
 
 @since 0.0.1.0
 -}
-{-# INLINE disjoint #-}
-disjoint :: Enum a => RangeSet a -> RangeSet a -> Bool
+disjoint :: RangeSet a -> RangeSet a -> Bool
 disjoint Tip _ = True
 disjoint _ Tip = True
-disjoint (Fork _ l u lt rt) t = case splitOverlap l u t of
-  (# lt', Tip, rt' #) -> disjoint lt lt' && disjoint rt rt'
+disjoint (Fork _ ll lu llt lrt) (Fork _ rl ru rlt rrt) = case splitOverlapFork ll lu rl ru rlt rrt of
+  (# lt', Tip, rt' #) -> disjoint llt lt' && disjoint lrt rt'
   _                   -> False
 
 {-|
@@ -62,12 +70,11 @@ Removes all elements from the first set that are found in the second set.
 
 @since 0.0.1.0
 -}
-{-# INLINEABLE difference #-}
-difference :: Enum a => RangeSet a -> RangeSet a -> RangeSet a
+difference :: RangeSet a -> RangeSet a -> RangeSet a
 difference Tip _ = Tip
 difference t Tip = t
-difference t (Fork _ l u lt rt) = case split l u t of
+difference (Fork _ ll lu llt lrt) (Fork _ rl ru rlt rrt) = case splitFork rl ru ll lu llt lrt of
   (# lt', rt' #) -> disjointMerge lt'lt rt'rt
     where
-      !lt'lt = difference lt' lt
-      !rt'rt = difference rt' rt
+      !lt'lt = difference lt' rlt
+      !rt'rt = difference rt' rrt

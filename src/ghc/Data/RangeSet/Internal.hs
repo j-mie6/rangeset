@@ -90,12 +90,11 @@ deleteE x t@(Fork h l u lt rt) =
 uncheckedSubsetOf :: RangeSet a -> RangeSet a -> Bool
 uncheckedSubsetOf Tip _ = True
 uncheckedSubsetOf _ Tip = False
-uncheckedSubsetOf (Fork _ l u lt rt) t = case splitOverlap l u t of
+uncheckedSubsetOf (Fork _ ll lu llt lrt) (Fork _ rl ru rlt rrt) = case splitOverlapFork ll lu rl ru rlt rrt of
   (# lt', Fork 1 x y _ _, rt' #) ->
-       x == l && y == u
-    && size lt <= size lt' && size rt <= size rt'
-    && uncheckedSubsetOf lt lt' && uncheckedSubsetOf rt rt'
-  _                                -> False
+       x == ll && y == lu
+    && uncheckedSubsetOf llt lt' && uncheckedSubsetOf lrt rt'
+  _                              -> False
 
 {-# INLINEABLE fromDistinctAscRangesSz #-}
 fromDistinctAscRangesSz :: SRangeList -> Int -> RangeSet a
@@ -117,4 +116,5 @@ fromDistinctAscRangesSz rs !n = case go rs 0 (n - 1) of (# _, t, _ #) -> t
 {-# INLINE insertRangeE #-}
 -- This could be improved, but is OK
 insertRangeE :: E -> E -> RangeSet a -> RangeSet a
-insertRangeE !l !u t = let (# lt, rt #) = split l u t in link l u lt rt
+insertRangeE !l !u Tip = single l u
+insertRangeE l u (Fork _ l' u' lt rt) = let (# lt', rt' #) = splitFork l u l' u' lt rt in link l u lt' rt'
