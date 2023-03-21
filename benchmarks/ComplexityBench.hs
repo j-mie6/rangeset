@@ -39,21 +39,14 @@ chunks n xs = reverse (take n (iterate (drop (m `div` n)) xs))
 
 main :: IO ()
 main = do
-  --xss <- replicateM 16 (shuffleM xs)
-  --yss <- replicateM 4 (shuffleM ys)
-  --zss <- replicateM 4 (shuffleM zs)
-
-  ys' <- shuffleM ys
-  zs' <- shuffleM zs
-
   condensedMain (Just "complexity.csv") [
-      bgroup "disjoint" [ unionB ys' zs'
-                        , intersectB ys' zs'
-                        , differenceB ys' zs'
-                        ],
-      bgroup "overlap"  [ unionB ys' ys'
-                        , intersectB ys' ys'
-                        , differenceB ys' ys'
+      {-bgroup "disjoint" [ unionB id ys zs
+                        , intersectB id ys zs
+                        , differenceB id ys zs
+                        ],-}
+      bgroup "overlap"  [ unionB id ys ys
+                        , intersectB id ys ys
+                        , differenceB id ys ys
                         ]
     ]
 
@@ -73,26 +66,34 @@ insertB xss =
     insertF = nfList . map (uncurry RangeSet.insert)
     nothingF = snd-}
 
-unionB :: [Int] -> [Int] -> Benchmark
+unionB :: ([Int] -> [Int]) -> [Int] -> [Int] -> Benchmark
 unionB = mkBench "RangeSet.union" RangeSet.union
 
-intersectB :: [Int] -> [Int] -> Benchmark
+intersectB :: ([Int] -> [Int]) -> [Int] -> [Int] -> Benchmark
 intersectB = mkBench "RangeSet.intersection" RangeSet.intersection
 
-differenceB :: [Int] -> [Int] -> Benchmark
+differenceB :: ([Int] -> [Int]) -> [Int] -> [Int] -> Benchmark
 differenceB = mkBench "RangeSet.difference" RangeSet.difference
 
 {-# INLINE mkBench #-}
-mkBench :: String -> (RangeSet Int -> RangeSet Int -> RangeSet Int) -> [Int] -> [Int] -> Benchmark
-mkBench name f xs ys =
-  env (return dat) $ \edat -> bgroup name (map (fbench edat) is)
+mkBench :: String -> (RangeSet Int -> RangeSet Int -> RangeSet Int) -> ([Int] -> [Int]) -> [Int] -> [Int] -> Benchmark
+mkBench name f adjust xs ys =
+  env dat $ \edat -> bgroup name (map (fbench edat) is)
   where
-    dat :: Array (Int, Int) (RangeSet Int, RangeSet Int)
-    !dat = array ((1, 1), (n, n)) [((i, j), (x, y)) | (i, x) <- zip [1..n] xsc, (j, y) <- zip [1..n] ysc]
-    xsc = (map RangeSet.fromList . chunks n) xs
-    ysc = (map RangeSet.fromList . chunks n) ys
-    !is = force (indices dat)
-    n = 10
+    !n = 10
+
+    dat :: IO (Array (Int, Int) (RangeSet Int, RangeSet Int))
+    dat = do
+      xss <- traverse shuffleM (chunks n xs)
+      yss <- traverse shuffleM (chunks n ys)
+      return $ array rng
+        [ ((i, j), (RangeSet.fromList xs, RangeSet.fromList (adjust ys)))
+        | (i, xs) <- zip [1..n] xss
+        , (j, ys) <- zip [1..n] yss
+        ]
+
+    !rng = ((1, 1), (n, n))
+    !is = force (range rng)
     !sz = length xs `div` n
 
     fbench dat ij@(i, j) = bench (show (i * sz, j * sz)) (whnf (uncurry f) (dat ! ij))

@@ -10,16 +10,23 @@ will appear in the result set.
 
 @since 0.0.1.0
 -}
--- TODO: could improve performance by pulling the same trick as intersection, but much more minor!
 union :: RangeSet a -> RangeSet a -> RangeSet a
-union t Tip = t
-union Tip t = t
-union t@(Fork _ ll lu llt lrt) (Fork _ rl ru rlt rrt) = case splitFork ll lu rl ru rlt rrt of
-  (# lt', rt' #)
-    | stayedSame llt ltlt', stayedSame lrt rtrt' -> t
-    | otherwise                                  -> link ll lu ltlt' rtrt'
-    where !ltlt' = llt `union` lt'
-          !rtrt' = lrt `union` rt'
+union = optimalForHeight
+  where
+    optimalForHeight :: RangeSet a -> RangeSet a -> RangeSet a
+    optimalForHeight t Tip =  t
+    optimalForHeight Tip t = t
+    optimalForHeight lt@(Fork lh ll lu llt lrt) rt@(Fork rh rl ru rlt rrt)
+      | lh < rh = doUnion rt rl ru rlt rrt ll lu llt lrt
+      | otherwise = doUnion lt ll lu llt lrt rl ru rlt rrt
+
+    doUnion :: RangeSet a -> E -> E -> RangeSet a -> RangeSet a -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
+    doUnion t ll lu llt lrt rl ru rlt rrt = case splitFork ll lu rl ru rlt rrt of
+      (# lt', rt' #)
+        | stayedSame llt ltlt', stayedSame lrt rtrt' -> t
+        | otherwise                                  -> link ll lu ltlt' rtrt'
+        where !ltlt' = llt `optimalForHeight` lt'
+              !rtrt' = lrt `optimalForHeight` rt'
 
 {-|
 Intersects two sets such that an element appears in the result if and only if it is present in both
