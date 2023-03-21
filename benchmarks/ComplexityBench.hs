@@ -40,10 +40,10 @@ chunks n xs = reverse (take n (iterate (drop (m `div` n)) xs))
 main :: IO ()
 main = do
   condensedMain (Just "complexity.csv") [
-      {-bgroup "disjoint" [ unionB id ys zs
+      bgroup "disjoint" [ unionB id ys zs
                         , intersectB id ys zs
                         , differenceB id ys zs
-                        ],-}
+                        ],
       bgroup "overlap"  [ unionB id ys ys
                         , intersectB id ys ys
                         , differenceB id ys ys
