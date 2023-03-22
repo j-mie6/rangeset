@@ -1,52 +1,27 @@
-{-# LANGUAGE StandaloneDeriving, DeriveAnyClass, DeriveGeneric, BangPatterns, TypeApplications, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
+{-# LANGUAGE BangPatterns, TypeApplications, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
 module Main where
-
--- #define USE_ENUM
 
 import Gauge
 import BenchmarkUtils
 
 import Data.RangeSet (RangeSet)
-#ifdef USE_ENUM
-import Data.EnumSet (Set)
-#else
+import Data.EnumSet (EnumSet)
 import Data.Set (Set)
-#endif
-
+import Data.Patricia (Patricia)
+import qualified Data.RangeSet as RangeSet
+import qualified Data.EnumSet as EnumSet
+import qualified Data.Patricia as Patricia
+import qualified Data.Set as Set
 
 import Control.Monad
 import Control.DeepSeq
-
---import Data.Array.IO
-
 import Data.List
---import Data.Maybe
-
---import Data.Bifunctor (bimap)
-
-import Control.Selective (whileS)
-
-import GHC.Generics (Generic)
-
 import System.Random.Shuffle
 import System.Random.Stateful
 
-import qualified Data.RangeSet as RangeSet
-import qualified Data.RangeSet.Internal as RangeSet
-#ifdef USE_ENUM
-import qualified Data.EnumSet as Set
-#else
-import qualified Data.Set as Set
-#endif
 import qualified Data.List as List
 import GHC.Real (Fractional, (%))
 import Data.Ratio (denominator, numerator)
-
-deriving instance (Generic a, NFData a) => NFData (RangeSet a)
-deriving instance Generic a => Generic (RangeSet a)
-deriving instance Generic Int
-deriving instance Generic Word
-deriving instance Generic Char
 
 main :: IO ()
 main = do
@@ -73,7 +48,7 @@ binSize = 100 --for full bench
 approxSetSize :: Int
 approxSetSize = 1000
 
-fillBins' :: forall a. (Ord a, Enum a, Bounded a, Num a, UniformRange a) => IO [(Rational, [(RangeSet a, Set a, [a], [a])])]
+fillBins' :: forall a. (Ord a, Enum a, Bounded a, Num a, UniformRange a) => IO [(Rational, [(RangeSet a, Set a, EnumSet a, Patricia a, [a], [a])])]
 fillBins' =
   do let granulation = 1 % fromIntegral numContBins
      let toRatio = (* granulation) . fromIntegral
@@ -88,7 +63,7 @@ fillBins' =
           -- invariant for the other benchmarks
           shift <- uniformRM (0, fromIntegral approxSetSize) globalStdGen :: IO a
           return (map (+ shift) xs')
-        return (c, map (\xs -> (RangeSet.fromList xs, Set.fromList xs, xs, sort xs)) xss)
+        return (c, map (\xs -> (RangeSet.fromList xs, Set.fromList xs, EnumSet.fromList xs, Patricia.fromList xs, xs, sort xs)) xss)
 
 buildWithContiguity :: forall a. (Bounded a, Enum a) => Int -> Rational -> [a]
 buildWithContiguity atLeast c = go [minBound @a .. maxBound @a] ranges
@@ -110,146 +85,102 @@ buildWithContiguity atLeast c = go [minBound @a .. maxBound @a] ranges
     numSmall = numSmallUnscaled * scale
     bigSize = smallSize + 1
 
-contiguityBench :: forall a. (NFData a, Ord a, Enum a, Generic a) => [Rational] -> [[(RangeSet a, Set a, [a], [a])]] -> Benchmark
-contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip4 bins)) $ \dat ->
+contiguityBench :: forall a. (NFData a, Ord a, Enum a) => [Rational] -> [[(RangeSet a, Set a, EnumSet a, Patricia a, [a], [a])]] -> Benchmark
+contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip6 bins)) $ \dat ->
     bgroup "contiguity" (concatMap (mkBench dat) (zip ratios [0..]))
 
   where
     --es = elems @a
-    mkBench dat (ratio, i) = let ~(rs, ss, xss, sxss) = dat !! i in [
-        bench ("overhead rangeset-from (" ++ show ratio ++ ")") $ whnf overheadRangeSetFromList sxss,
-        bench ("overhead set-from (" ++ show ratio ++ ")") $ whnf overheadSetFromList sxss,
+    mkBench dat (ratio, i) = let ~(rs, ss, es, ps, xss, sxss) = dat !! i in [
+        bench ("overhead from (" ++ show ratio ++ ")") $ whnf overheadFromList sxss,
         bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList sxss,
         bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList sxss,
+        bench ("set-opt-from (" ++ show ratio ++ ")") $ whnf enumSetFromList sxss,
+        bench ("patricia-from (" ++ show ratio ++ ")") $ whnf patriciaFromList sxss,
         --bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ whnf (overheadRangeSetAllMember es) rs,
         --bench ("overhead set-all (" ++ show ratio ++ ")") $ whnf (overheadSetAllMember es) ss,
         --bench ("rangeset-all (" ++ show ratio ++ ")") $ whnf (rangeSetAllMember es) rs,
         --bench ("set-all (" ++ show ratio ++ ")") $ whnf (setAllMember es) ss,
-        bench ("overhead rangeset-union (" ++ show ratio ++ ")") $ whnf overheadRangeSetUnion rs,
-        bench ("overhead set-union (" ++ show ratio ++ ")") $ whnf overheadSetUnion ss,
+        bench ("overhead union (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
         bench ("rangeset-union (" ++ show ratio ++ ")") $ whnf rangeSetUnion rs,
         bench ("set-union (" ++ show ratio ++ ")") $ whnf setUnion ss,
-        bench ("overhead rangeset-intersection (" ++ show ratio ++ ")") $ whnf overheadRangeSetIntersection rs,
-        bench ("overhead set-intersection (" ++ show ratio ++ ")") $ whnf overheadSetIntersection ss,
+        bench ("set-opt-union (" ++ show ratio ++ ")") $ whnf enumSetUnion es,
+        bench ("patricia-union (" ++ show ratio ++ ")") $ whnf patriciaUnion ps,
+        bench ("overhead intersection (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
         bench ("rangeset-intersection (" ++ show ratio ++ ")") $ whnf rangeSetIntersection rs,
         bench ("set-intersection (" ++ show ratio ++ ")") $ whnf setIntersection ss,
-        bench ("overhead rangeset-difference (" ++ show ratio ++ ")") $ whnf overheadRangeSetDifference rs,
-        bench ("overhead set-difference (" ++ show ratio ++ ")") $ whnf overheadSetDifference ss,
+        bench ("set-opt-intersection (" ++ show ratio ++ ")") $ whnf enumSetIntersection es,
+        bench ("patricia-intersection (" ++ show ratio ++ ")") $ whnf patriciaIntersection ps,
+        bench ("overhead difference (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
         bench ("rangeset-difference (" ++ show ratio ++ ")") $ whnf rangeSetDifference rs,
         bench ("set-difference (" ++ show ratio ++ ")") $ whnf setDifference ss,
-        bench ("overhead rangeset-mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadRangeSetMember) (xss, rs),
-        bench ("overhead set-mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadSetMember) (xss, ss),
+        bench ("set-opt-difference (" ++ show ratio ++ ")") $ whnf enumSetDifference es,
+        bench ("patricia-difference (" ++ show ratio ++ ")") $ whnf patriciaDifference ps,
+        bench ("overhead mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadMember) (xss, rs),
         bench ("rangeset-mem (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetMember) (xss, rs),
         bench ("set-mem (" ++ show ratio ++ ")") $ whnf (uncurry setMember) (xss, ss),
-        bench ("overhead rangeset-ins (" ++ show ratio ++ ")") $ whnf overheadRangeSetInsert xss,
-        bench ("overhead set-ins (" ++ show ratio ++ ")") $ whnf overheadSetInsert xss,
+        bench ("set-opt-mem (" ++ show ratio ++ ")") $ whnf (uncurry enumSetMember) (xss, es),
+        bench ("patricia-mem (" ++ show ratio ++ ")") $ whnf (uncurry patriciaMember) (xss, ps),
+        bench ("overhead ins (" ++ show ratio ++ ")") $ whnf overheadInsert xss,
         bench ("rangeset-ins (" ++ show ratio ++ ")") $ whnf rangeSetInsert xss,
         bench ("set-ins (" ++ show ratio ++ ")") $ whnf setInsert xss,
+        bench ("set-opt-ins (" ++ show ratio ++ ")") $ whnf enumSetInsert xss,
+        bench ("patricia-ins (" ++ show ratio ++ ")") $ whnf patriciaInsert xss,
         bench ("rangeset-ins-sorted (" ++ show ratio ++ ")") $ whnf rangeSetInsert sxss,
         bench ("set-ins-sorted (" ++ show ratio ++ ")") $ whnf setInsert sxss,
-        bench ("overhead rangeset-del (" ++ show ratio ++ ")") $ whnf (uncurry overheadRangeSetDelete) (xss, rs),
-        bench ("overhead set-del (" ++ show ratio ++ ")") $ whnf (uncurry overheadSetDelete) (xss, ss),
+        bench ("set-opt-ins-sorted (" ++ show ratio ++ ")") $ whnf enumSetInsert sxss,
+        bench ("patricia-ins-sorted (" ++ show ratio ++ ")") $ whnf patriciaInsert sxss,
+        bench ("overhead del (" ++ show ratio ++ ")") $ whnf (uncurry overheadDelete) (xss, rs),
         bench ("rangeset-del (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetDelete) (xss, rs),
         bench ("set-del (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (xss, ss),
+        bench ("set-opt-del (" ++ show ratio ++ ")") $ whnf (uncurry enumSetDelete) (xss, es),
+        bench ("patricia-del (" ++ show ratio ++ ")") $ whnf (uncurry patriciaDelete) (xss, ps),
         bench ("rangeset-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetDelete) (sxss, rs),
-        bench ("set-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (sxss, ss)
+        bench ("set-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (sxss, ss),
+        bench ("set-opt-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry enumSetDelete) (sxss, es),
+        bench ("patricia-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry patriciaDelete) (sxss, ps)
       ]
 
-    overheadRangeSetAllMember :: [a] -> [RangeSet a] -> [Bool]
-    overheadRangeSetAllMember !elems rs = nfList [False | r <- rs, x <- elems]
-
-    overheadSetAllMember :: [a] -> [Set a] -> [Bool]
-    overheadSetAllMember !elems ss = nfList [False | s <- ss, x <- elems]
-
-    rangeSetAllMember :: [a] -> [RangeSet a] -> [Bool]
-    rangeSetAllMember !elems rs = nfList [RangeSet.member x r | r <- rs, x <- elems]
-
-    setAllMember :: [a] -> [Set a] -> [Bool]
-    setAllMember !elems ss = nfList [Set.member x s | s <- ss, x <- elems]
-
-    overheadRangeSetMember :: [[a]] -> [RangeSet a] -> [Bool]
-    overheadRangeSetMember xss rs = nfList [False | (r, xs) <- zip rs xss, x <- xs]
-
-    overheadSetMember :: [[a]] -> [Set a] -> [Bool]
-    overheadSetMember xss ss = nfList [False | (s, xs) <- zip ss xss, x <- xs]
-
-    rangeSetMember :: [[a]] -> [RangeSet a] -> [Bool]
+    overheadMember xss ys = nfList [False | (y, xs) <- zip ys xss, x <- xs]
     rangeSetMember xss rs = nfList [RangeSet.member x r | (r, xs) <- zip rs xss, x <- xs]
-
-    setMember :: [[a]] -> [Set a] -> [Bool]
     setMember xss ss = nfList [Set.member x s | (s, xs) <- zip ss xss, x <- xs]
+    patriciaMember xss ss = nfList [Patricia.member x s | (s, xs) <- zip ss xss, x <- xs]
+    enumSetMember xss ss = nfList [EnumSet.member x s | (s, xs) <- zip ss xss, x <- xs]
 
-    overheadRangeSetInsert :: [[a]] -> [RangeSet a]
-    overheadRangeSetInsert = nfList . map (foldr (const id) RangeSet.empty)
+    overheadInsert = nfList . map (foldr @[] @a (const id) ())
+    rangeSetInsert = nfList . map (foldr @[] @a RangeSet.insert RangeSet.empty)
+    setInsert = nfList . map (foldr @[] @a Set.insert Set.empty)
+    patriciaInsert = nfList . map (foldr @[] @a Patricia.insert Patricia.empty)
+    enumSetInsert = nfList . map (foldr @[] @a EnumSet.insert EnumSet.empty)
 
-    overheadSetInsert :: [[a]] -> [Set a]
-    overheadSetInsert = nfList . map (foldr (const id) Set.empty)
-
-    rangeSetInsert :: [[a]] -> [RangeSet a]
-    rangeSetInsert = nfList . map (foldr RangeSet.insert RangeSet.empty)
-
-    setInsert :: [[a]] -> [Set a]
-    setInsert = nfList . map (foldr Set.insert Set.empty)
-
-    overheadRangeSetDelete :: [[a]] -> [RangeSet a] -> [RangeSet a]
-    overheadRangeSetDelete xss rs = nfList $ zipWith (foldr (const id)) rs xss
-
-    overheadSetDelete :: [[a]] -> [Set a] -> [Set a]
-    overheadSetDelete xss ss =  nfList $ zipWith (foldr (const id)) ss xss
-
-    rangeSetDelete :: [[a]] -> [RangeSet a] -> [RangeSet a]
+    overheadDelete xss ys = nfList $ zipWith (foldr (const id)) ys xss
     rangeSetDelete xss rs = nfList $ zipWith (foldr RangeSet.delete) rs xss
-
-    setDelete :: [[a]] -> [Set a] -> [Set a]
     setDelete xss ss = nfList $ zipWith (foldr Set.delete) ss xss
+    patriciaDelete xss rs = nfList $ zipWith (foldr Patricia.delete) rs xss
+    enumSetDelete xss ss = nfList $ zipWith (foldr EnumSet.delete) ss xss
 
-    overheadRangeSetUnion :: [RangeSet a] -> [RangeSet a]
-    overheadRangeSetUnion rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ const <$> rs' <*> rs'
+    overheadSetCrossSet xs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ const <$> xs' <*> xs'
 
-    overheadSetUnion :: [Set a] -> [Set a]
-    overheadSetUnion ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ const <$> ss' <*> ss'
-
-    rangeSetUnion :: [RangeSet a] -> [RangeSet a]
     rangeSetUnion rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ RangeSet.union <$> rs' <*> rs'
-
-    setUnion :: [Set a] -> [Set a]
     setUnion ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ Set.union <$> ss' <*> ss'
+    patriciaUnion rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ Patricia.union <$> rs' <*> rs'
+    enumSetUnion ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ EnumSet.union <$> ss' <*> ss'
 
-    overheadRangeSetIntersection :: [RangeSet a] -> [RangeSet a]
-    overheadRangeSetIntersection rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ const <$> rs' <*> rs'
-
-    overheadSetIntersection :: [Set a] -> [Set a]
-    overheadSetIntersection ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ const <$> ss' <*> ss'
-
-    rangeSetIntersection :: [RangeSet a] -> [RangeSet a]
     rangeSetIntersection rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ RangeSet.intersection <$> rs' <*> rs'
-
-    setIntersection :: [Set a] -> [Set a]
     setIntersection ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ Set.intersection <$> ss' <*> ss'
+    patriciaIntersection rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ Patricia.intersection <$> rs' <*> rs'
+    enumSetIntersection ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ EnumSet.intersection <$> ss' <*> ss'
 
-    overheadRangeSetDifference :: [RangeSet a] -> [RangeSet a]
-    overheadRangeSetDifference rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ const <$> rs' <*> rs'
-
-    overheadSetDifference :: [Set a] -> [Set a]
-    overheadSetDifference ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ const <$> ss' <*> ss'
-
-    rangeSetDifference :: [RangeSet a] -> [RangeSet a]
     rangeSetDifference rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ RangeSet.difference <$> rs' <*> rs'
-
-    setDifference :: [Set a] -> [Set a]
     setDifference ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ Set.difference <$> ss' <*> ss'
+    patriciaDifference rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ Patricia.difference <$> rs' <*> rs'
+    enumSetDifference ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ EnumSet.difference <$> ss' <*> ss'
 
-    overheadRangeSetFromList :: [[a]] -> [RangeSet a]
-    overheadRangeSetFromList = nfList . map (const RangeSet.empty)
-
-    overheadSetFromList :: [[a]] -> [Set a]
-    overheadSetFromList = nfList . map (const Set.empty)
-
-    rangeSetFromList :: [[a]] -> [RangeSet a]
+    overheadFromList = nfList . map (const ())
     rangeSetFromList = nfList . map RangeSet.fromList
-
-    setFromList :: [[a]] -> [Set a]
     setFromList = nfList . map Set.fromList
+    patriciaFromList = nfList . map Patricia.fromList
+    enumSetFromList = nfList . map EnumSet.fromList
 
 {-
 maxElem :: Enum a => a

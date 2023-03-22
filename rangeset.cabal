@@ -108,11 +108,9 @@ benchmark contiguity-bench
   type:                exitcode-stdio-1.0
   build-depends:       containers,
                        random-shuffle,
-                       random,
-                       array,
-                       selective
+                       random
   main-is:             ContiguityBench.hs
-  --other-modules:       Data.EnumSet
+  other-modules:       Data.EnumSet, Data.Patricia
 
 source-repository head
   type:                git

@@ -1,4 +1,4 @@
-{-# LANGUAGE StandaloneDeriving, DeriveAnyClass, DeriveGeneric, BangPatterns, TypeApplications, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
 module Main where
 
 import Gauge
@@ -21,12 +21,6 @@ import qualified Data.Set as Set
 import Data.Array
 
 import Data.List (foldl', transpose)
-
-deriving instance (Generic a, NFData a) => NFData (RangeSet a)
-deriving instance Generic a => Generic (RangeSet a)
-deriving instance Generic Int
-deriving instance Generic Word
-deriving instance Generic Char
 
 xs, ys, zs :: [Int]
 xs = [0, 2..99999]

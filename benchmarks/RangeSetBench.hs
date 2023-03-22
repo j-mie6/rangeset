@@ -1,4 +1,4 @@
-{-# LANGUAGE StandaloneDeriving, DeriveAnyClass, DeriveGeneric, BangPatterns, TypeApplications, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
 module Main where
 
 import Gauge
@@ -13,19 +13,11 @@ import Control.DeepSeq
 
 import Data.List
 
-import GHC.Generics (Generic)
-
 import qualified Data.RangeSet as RangeSet
 import qualified Data.RangeSet.Internal as RangeSet
 import qualified Data.Set as Set
 import qualified Data.List as List
 import GHC.Real (Fractional, (%))
-
-deriving instance (Generic a, NFData a) => NFData (RangeSet a)
-deriving instance Generic a => Generic (RangeSet a)
-deriving instance Generic Int
-deriving instance Generic Word
-deriving instance Generic Char
 
 main :: IO ()
 main = do
