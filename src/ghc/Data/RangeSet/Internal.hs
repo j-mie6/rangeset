@@ -43,7 +43,7 @@ insertE x t@(Fork h l u lt rt)
   where
     {-# INLINE fuseLeft #-}
     fuseLeft !h !x !u Tip !rt = Fork h x u Tip rt
-    fuseLeft h x u (Fork _ ll lu llt lrt) rt
+    fuseLeft h x u lt@(Fork _ ll lu llt lrt) rt
       | (# !l, !x', lt' #) <- maxDelete ll lu llt lrt
       -- we know there exists an element larger than x'
       -- if x == x' + 1, we fuse (x != x' since that breaks disjointness, x == pred l)
@@ -51,7 +51,7 @@ insertE x t@(Fork h l u lt rt)
       | otherwise    = Fork h x u lt rt
     {-# INLINE fuseRight #-}
     fuseRight !h !l !x !lt Tip = Fork h l x lt Tip
-    fuseRight h l x lt (Fork _ rl ru rlt rrt)
+    fuseRight h l x lt rt@(Fork _ rl ru rlt rrt)
       | (# !x', !u, rt' #) <- minDelete rl ru rlt rrt
       -- we know there exists an element smaller than x'
       -- if x == x' - 1, we fuse (x != x' since that breaks disjointness, as x == succ u)
