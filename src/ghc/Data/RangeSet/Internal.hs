@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, MultiWayIf, BangPatterns, CPP, Trustworthy #-}
+{-# LANGUAGE UnboxedTuples, MultiWayIf, BangPatterns, Trustworthy #-}
 module Data.RangeSet.Internal (
     module Data.RangeSet.Internal,
     RangeSet(..), E, SRangeList(..), StrictMaybeE(..),
