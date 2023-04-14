@@ -1,14 +1,10 @@
-{-# LANGUAGE DerivingStrategies, RoleAnnotations, CPP, Trustworthy, BangPatterns #-}
-#if __GLASGOW_HASKELL__ > 900
+{-# LANGUAGE DerivingStrategies, RoleAnnotations, Trustworthy, BangPatterns #-}
 {-# LANGUAGE UnliftedDatatypes #-}
-#endif
 module Data.RangeSet.Internal.Types (module Data.RangeSet.Internal.Types) where
 
 import Prelude
 
-#if __GLASGOW_HASKELL__ > 900
 import GHC.Exts (UnliftedType)
-#endif
 
 import GHC.Word (Word8)
 
@@ -50,14 +46,10 @@ foldE :: (E -> E -> b -> b -> b) -- ^ Function that combines the lower and upper
 foldE _ tip Tip = tip
 foldE fork tip (Fork _ l u lt rt) = fork l u (foldE fork tip lt) (foldE fork tip rt)
 
-#if __GLASGOW_HASKELL__ > 900
 type StrictMaybeE :: UnliftedType
-#endif
 data StrictMaybeE = SJust {-# UNPACK #-} !E | SNothing
 
-#if __GLASGOW_HASKELL__ > 900
 type SRangeList :: UnliftedType
-#endif
 data SRangeList = SRangeCons {-# UNPACK #-} !E {-# UNPACK #-} !E !SRangeList | SNil
 
 absDiff :: H -> H -> H

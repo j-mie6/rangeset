@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, TypeApplications, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes, CPP #-}
+{-# LANGUAGE BangPatterns, TypeApplications, ScopedTypeVariables, BlockArguments, AllowAmbiguousTypes  #-}
 module Main where
 
 import Gauge
