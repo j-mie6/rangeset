@@ -4,10 +4,13 @@ module Data.RangeSet.Builders (fromRanges, fromDistinctAscRanges, insertRange, f
 import Prelude hiding (id, (.))
 import Data.RangeSet.Internal
 import Data.RangeSet.Primitives
+import Data.List (foldl')
 
+{-# INLINE id #-}
 id :: SRangeList -> SRangeList
 id ss = ss
 
+{-# INLINE (.) #-}
 (.) :: (SRangeList -> SRangeList) -> (SRangeList -> SRangeList) -> SRangeList -> SRangeList
 (f . g) ss = f (g ss)
 
@@ -16,6 +19,7 @@ Constructs a `RangeSet` given a list of ranges.
 
 @since 0.0.1.0
 -}
+{-# INLINABLE fromRanges #-}
 fromRanges :: forall a. Enum a => [(a, a)] -> RangeSet a
 fromRanges [] = Tip
 fromRanges ((x, y):rs) = go rs ey (SRangeCons ex ey) 1
@@ -26,7 +30,7 @@ fromRanges ((x, y):rs) = go rs ey (SRangeCons ex ey) 1
     go [] !_ k !n = fromDistinctAscRangesSz (k SNil) n
     go ((x, y):rs) z k n
       -- ordering and disjointness of the ranges broken
-      | ex <= z || ey <= z = insertRangeE ex ey (foldr (uncurry insertRange) (fromDistinctAscRangesSz (k SNil) n) rs)
+      | ex <= z || ey <= z = insertRangeE ex ey (foldl' (flip (uncurry insertRange)) (fromDistinctAscRangesSz (k SNil) n) rs)
       | otherwise          = go rs ey (k . SRangeCons ex ey) (n + 1)
       where
         !ex = fromEnum x
@@ -37,6 +41,7 @@ Constructs a `RangeSet` given a list of ranges that are in ascending order and d
 
 @since 0.0.1.0
 -}
+{-# INLINABLE fromDistinctAscRanges #-}
 fromDistinctAscRanges :: forall a. Enum a => [(a, a)] -> RangeSet a
 fromDistinctAscRanges rs = go rs id 0
   where
@@ -61,6 +66,7 @@ Builds a `RangeSet` from a given list of elements.
 
 @since 0.0.1.0
 -}
+{-# INLINABLE fromList #-}
 fromList :: forall a. Enum a => [a] -> RangeSet a
 fromList [] = Tip
 fromList (x:xs) = go xs (fromEnum x) (fromEnum x) id 1
@@ -69,7 +75,7 @@ fromList (x:xs) = go xs (fromEnum x) (fromEnum x) id 1
     go [] !l !u k !n = fromDistinctAscRangesSz (k (SRangeCons l u SNil)) n
     go (!x:xs) l u k n
       -- ordering or uniqueness is broken
-      | ex <= u      = insertE ex (foldr insert (fromDistinctAscRangesSz (k (SRangeCons l u SNil)) n) xs)
+      | ex <= u      = insertE ex (foldl' (flip insert) (fromDistinctAscRangesSz (k (SRangeCons l u SNil)) n) xs)
       -- the current range is expanded
       | ex == succ u = go xs l ex k n
       -- a new range begins
@@ -83,6 +89,7 @@ Builds a `RangeSet` from a given list of elements that are in ascending order wi
 
 @since 0.0.1.0
 -}
+{-# INLINABLE fromDistinctAscList #-}
 fromDistinctAscList :: forall a. Enum a => [a] -> RangeSet a
 fromDistinctAscList [] = Tip
 fromDistinctAscList (x:xs) = go xs (fromEnum x) (fromEnum x) id 1

@@ -7,19 +7,18 @@ import Data.RangeSet.Internal.Types
 import Data.RangeSet.Internal.SmartConstructors
 import Data.RangeSet.Internal.Inserters
 import Data.RangeSet.Internal.Extractors
-import Data.RangeSet.Internal.Enum
 
 {-# INLINABLE link #-}
 link :: E -> E -> RangeSet a -> RangeSet a -> RangeSet a
-link !l !u Tip Tip = single (diffE l u) l u
-link l u Tip (Fork rh rsz rl ru rlt rrt) = insertLAdj (diffE l u) l u rh rsz rl ru rlt rrt
-link l u (Fork lh lsz ll lu llt lrt) Tip = insertRAdj (diffE l u) l u lh lsz ll lu llt lrt
-link l u lt@(Fork _ lsz ll lu llt lrt) rt@(Fork _ rsz rl ru rlt rrt) =
-  disjointLink (diffE l' u') l' u' lt'' rt''
+link !l !u Tip Tip = single l u
+link l u Tip (Fork rh rl ru rlt rrt) = insertLAdj l u rh rl ru rlt rrt
+link l u (Fork lh ll lu llt lrt) Tip = insertRAdj l u lh ll lu llt lrt
+link l u lt@(Fork _ ll lu llt lrt) rt@(Fork _ rl ru rlt rrt) =
+  disjointLink l' u' lt'' rt''
   where
     -- we have to check for fusion up front
-    (# !lmaxl, !lmaxu, lt' #) = maxDelete lsz ll lu llt lrt
-    (# !rminl, !rminu, rt' #) = minDelete rsz rl ru rlt rrt
+    (# !lmaxl, !lmaxu, lt' #) = maxDelete ll lu llt lrt
+    (# !rminl, !rminu, rt' #) = minDelete rl ru rlt rrt
 
     (# !l', !lt'' #) | lmaxu == pred l = (# lmaxl, lt' #)
                      | otherwise       = (# l, lt #)
@@ -28,13 +27,13 @@ link l u lt@(Fork _ lsz ll lu llt lrt) rt@(Fork _ rsz rl ru rlt rrt) =
                      | otherwise       = (# u, rt #)
 
 {-# INLINEABLE disjointLink #-}
-disjointLink :: Size -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
-disjointLink !newSz !l !u Tip rt = unsafeInsertL newSz l u rt
-disjointLink newSz l u lt Tip = unsafeInsertR newSz l u lt
-disjointLink newSz l u lt@(Fork hl szl ll lu llt lrt) rt@(Fork hr szr rl ru rlt rrt)
-  | hl < hr + 1 = balanceL (newSz + szl + szr) rl ru (disjointLink newSz l u lt rlt) rrt
-  | hr < hl + 1 = balanceR (newSz + szl + szr) ll lu llt (disjointLink newSz l u lrt rt)
-  | otherwise   = forkH (newSz + szl + szr) l u hl lt hr rt
+disjointLink :: E -> E -> RangeSet a -> RangeSet a -> RangeSet a
+disjointLink !l !u Tip rt = unsafeInsertL l u rt
+disjointLink l u lt Tip = unsafeInsertR l u lt
+disjointLink l u lt@(Fork hl ll lu llt lrt) rt@(Fork hr rl ru rlt rrt)
+  | hl < hr + 1 = balanceL rl ru (disjointLink l u lt rlt) rrt
+  | hr < hl + 1 = balanceR ll lu llt (disjointLink l u lrt rt)
+  | otherwise   = forkH l u hl lt hr rt
 
 -- This version checks for fusion between the two trees to be merged
 {-{-# INLINEABLE merge #-}
@@ -53,17 +52,20 @@ merge t1 t2 =
 disjointMerge :: RangeSet a -> RangeSet a -> RangeSet a
 disjointMerge Tip rt = rt
 disjointMerge lt Tip = lt
-disjointMerge lt@(Fork hl szl ll lu llt lrt) rt@(Fork hr szr rl ru rlt rrt)
-  | hl < hr + 1 = balanceL (szl + szr) rl ru (disjointMerge lt rlt) rrt
-  | hr < hl + 1 = balanceR (szl + szr) ll lu llt (disjointMerge lrt rt)
-  | otherwise   = glue (szl + szr) lt rt
+disjointMerge lt@(Fork hl ll lu llt lrt) rt@(Fork hr rl ru rlt rrt)
+  | hl < hr + 1 = balanceL rl ru (disjointMerge lt rlt) rrt
+  | hr < hl + 1 = balanceR ll lu llt (disjointMerge lrt rt)
+  | otherwise   = glue' lt hl ll lu llt lrt rt hr rl ru rlt rrt
 
 -- Trees must be balanced with respect to eachother, since we pull from the tallest, no balancing is required
 {-# INLINEABLE glue #-}
-glue :: Size -> RangeSet a -> RangeSet a -> RangeSet a
-glue !_ Tip rt = rt
-glue _ lt Tip  = lt
-glue sz lt@(Fork lh lsz ll lu llt lrt) rt@(Fork rh rsz rl ru rlt rrt)
-  | lh < rh = let (# !l, !u, !rt' #) = minDelete rsz rl ru rlt rrt in forkSz sz l u lt rt'
-  | otherwise = let (# !l, !u, !lt' #) = maxDelete lsz ll lu llt lrt in forkSz sz l u lt' rt
+glue :: RangeSet a -> RangeSet a -> RangeSet a
+glue Tip rt = rt
+glue lt Tip  = lt
+glue lt@(Fork lh ll lu llt lrt) rt@(Fork rh rl ru rlt rrt) = glue' lt lh ll lu llt lrt rt rh rl ru rlt rrt
 
+{-# INLINEABLE glue' #-}
+glue' :: RangeSet a -> H -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a -> H -> E -> E -> RangeSet a -> RangeSet a -> RangeSet a
+glue' lt lh ll lu llt lrt rt rh rl ru rlt rrt
+  | lh < rh = let (# !l, !u, !rt' #) = minDelete rl ru rlt rrt in fork l u lt rt'
+  | otherwise = let (# !l, !u, !lt' #) = maxDelete ll lu llt lrt in fork l u lt' rt
