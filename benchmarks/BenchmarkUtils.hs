@@ -11,7 +11,7 @@ import Control.DeepSeq
 
 condensedMain :: Maybe FilePath -> [Benchmark] -> IO ()
 condensedMain csv = defaultMainWith $ defaultConfig { displayMode = Condensed
-                                                    , timeLimit = Just 60
+                                                    --, timeLimit = Just 60
                                                     , includeFirstIter = False
                                                     , csvFile = csv
                                                     --, iters = Just 100

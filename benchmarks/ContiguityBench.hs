@@ -40,13 +40,13 @@ contiguity :: RangeSet a -> Rational
 contiguity s = 1 - fromIntegral (RangeSet.sizeRanges s) % fromIntegral (RangeSet.size s)
 
 numContBins :: Int
-numContBins = 20
+numContBins = 10
 
 binSize :: Int
-binSize = 100 --for full bench
+binSize = 2 --for full bench
 
 approxSetSize :: Int
-approxSetSize = 1000
+approxSetSize = 524288
 
 fillBins' :: forall a. (Ord a, Enum a, Bounded a, Num a, UniformRange a) => IO [(Rational, [(RangeSet a, Set a, EnumSet a, Patricia a, [a], [a])])]
 fillBins' =
@@ -92,52 +92,52 @@ contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip6 bins)) $ 
   where
     --es = elems @a
     mkBench dat (ratio, i) = let ~(rs, ss, es, ps, xss, sxss) = dat !! i in [
-        bench ("overhead from (" ++ show ratio ++ ")") $ whnf overheadFromList sxss,
+        --bench ("overhead from (" ++ show ratio ++ ")") $ whnf overheadFromList sxss,
         bench ("rangeset-from (" ++ show ratio ++ ")") $ whnf rangeSetFromList sxss,
-        bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList sxss,
-        bench ("set-opt-from (" ++ show ratio ++ ")") $ whnf enumSetFromList sxss,
+        --bench ("set-from (" ++ show ratio ++ ")") $ whnf setFromList sxss,
+        --bench ("set-opt-from (" ++ show ratio ++ ")") $ whnf enumSetFromList sxss,
         bench ("patricia-from (" ++ show ratio ++ ")") $ whnf patriciaFromList sxss,
         --bench ("overhead rangeset-all (" ++ show ratio ++ ")") $ whnf (overheadRangeSetAllMember es) rs,
         --bench ("overhead set-all (" ++ show ratio ++ ")") $ whnf (overheadSetAllMember es) ss,
         --bench ("rangeset-all (" ++ show ratio ++ ")") $ whnf (rangeSetAllMember es) rs,
         --bench ("set-all (" ++ show ratio ++ ")") $ whnf (setAllMember es) ss,
-        bench ("overhead union (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
+        --bench ("overhead union (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
         bench ("rangeset-union (" ++ show ratio ++ ")") $ whnf rangeSetUnion rs,
-        bench ("set-union (" ++ show ratio ++ ")") $ whnf setUnion ss,
-        bench ("set-opt-union (" ++ show ratio ++ ")") $ whnf enumSetUnion es,
+        --bench ("set-union (" ++ show ratio ++ ")") $ whnf setUnion ss,
+        --bench ("set-opt-union (" ++ show ratio ++ ")") $ whnf enumSetUnion es,
         bench ("patricia-union (" ++ show ratio ++ ")") $ whnf patriciaUnion ps,
-        bench ("overhead intersection (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
+        --bench ("overhead intersection (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
         bench ("rangeset-intersection (" ++ show ratio ++ ")") $ whnf rangeSetIntersection rs,
-        bench ("set-intersection (" ++ show ratio ++ ")") $ whnf setIntersection ss,
-        bench ("set-opt-intersection (" ++ show ratio ++ ")") $ whnf enumSetIntersection es,
+        --bench ("set-intersection (" ++ show ratio ++ ")") $ whnf setIntersection ss,
+        --bench ("set-opt-intersection (" ++ show ratio ++ ")") $ whnf enumSetIntersection es,
         bench ("patricia-intersection (" ++ show ratio ++ ")") $ whnf patriciaIntersection ps,
-        bench ("overhead difference (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
+        --bench ("overhead difference (" ++ show ratio ++ ")") $ whnf overheadSetCrossSet rs,
         bench ("rangeset-difference (" ++ show ratio ++ ")") $ whnf rangeSetDifference rs,
-        bench ("set-difference (" ++ show ratio ++ ")") $ whnf setDifference ss,
-        bench ("set-opt-difference (" ++ show ratio ++ ")") $ whnf enumSetDifference es,
+        --bench ("set-difference (" ++ show ratio ++ ")") $ whnf setDifference ss,
+        --bench ("set-opt-difference (" ++ show ratio ++ ")") $ whnf enumSetDifference es,
         bench ("patricia-difference (" ++ show ratio ++ ")") $ whnf patriciaDifference ps,
-        bench ("overhead mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadMember) (xss, rs),
+        --bench ("overhead mem (" ++ show ratio ++ ")") $ whnf (uncurry overheadMember) (xss, rs),
         bench ("rangeset-mem (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetMember) (xss, rs),
-        bench ("set-mem (" ++ show ratio ++ ")") $ whnf (uncurry setMember) (xss, ss),
-        bench ("set-opt-mem (" ++ show ratio ++ ")") $ whnf (uncurry enumSetMember) (xss, es),
+        --bench ("set-mem (" ++ show ratio ++ ")") $ whnf (uncurry setMember) (xss, ss),
+        --bench ("set-opt-mem (" ++ show ratio ++ ")") $ whnf (uncurry enumSetMember) (xss, es),
         bench ("patricia-mem (" ++ show ratio ++ ")") $ whnf (uncurry patriciaMember) (xss, ps),
-        bench ("overhead ins (" ++ show ratio ++ ")") $ whnf overheadInsert xss,
+        --bench ("overhead ins (" ++ show ratio ++ ")") $ whnf overheadInsert xss,
         bench ("rangeset-ins (" ++ show ratio ++ ")") $ whnf rangeSetInsert xss,
-        bench ("set-ins (" ++ show ratio ++ ")") $ whnf setInsert xss,
-        bench ("set-opt-ins (" ++ show ratio ++ ")") $ whnf enumSetInsert xss,
+        --bench ("set-ins (" ++ show ratio ++ ")") $ whnf setInsert xss,
+        --bench ("set-opt-ins (" ++ show ratio ++ ")") $ whnf enumSetInsert xss,
         bench ("patricia-ins (" ++ show ratio ++ ")") $ whnf patriciaInsert xss,
         bench ("rangeset-ins-sorted (" ++ show ratio ++ ")") $ whnf rangeSetInsert sxss,
-        bench ("set-ins-sorted (" ++ show ratio ++ ")") $ whnf setInsert sxss,
-        bench ("set-opt-ins-sorted (" ++ show ratio ++ ")") $ whnf enumSetInsert sxss,
+        --bench ("set-ins-sorted (" ++ show ratio ++ ")") $ whnf setInsert sxss,
+        --bench ("set-opt-ins-sorted (" ++ show ratio ++ ")") $ whnf enumSetInsert sxss,
         bench ("patricia-ins-sorted (" ++ show ratio ++ ")") $ whnf patriciaInsert sxss,
-        bench ("overhead del (" ++ show ratio ++ ")") $ whnf (uncurry overheadDelete) (xss, rs),
+        --bench ("overhead del (" ++ show ratio ++ ")") $ whnf (uncurry overheadDelete) (xss, rs),
         bench ("rangeset-del (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetDelete) (xss, rs),
-        bench ("set-del (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (xss, ss),
-        bench ("set-opt-del (" ++ show ratio ++ ")") $ whnf (uncurry enumSetDelete) (xss, es),
+        --bench ("set-del (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (xss, ss),
+        --bench ("set-opt-del (" ++ show ratio ++ ")") $ whnf (uncurry enumSetDelete) (xss, es),
         bench ("patricia-del (" ++ show ratio ++ ")") $ whnf (uncurry patriciaDelete) (xss, ps),
         bench ("rangeset-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry rangeSetDelete) (sxss, rs),
-        bench ("set-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (sxss, ss),
-        bench ("set-opt-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry enumSetDelete) (sxss, es),
+        --bench ("set-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry setDelete) (sxss, ss),
+        --bench ("set-opt-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry enumSetDelete) (sxss, es),
         bench ("patricia-del-sorted (" ++ show ratio ++ ")") $ whnf (uncurry patriciaDelete) (sxss, ps)
       ]
 
@@ -176,11 +176,11 @@ contiguityBench ratios bins = {-es `deepseq`-} env (return (map unzip6 bins)) $ 
     patriciaDifference rs' = {-let rs' = take (binSize `div` 2) rs in -}nfList $ Patricia.difference <$> rs' <*> rs'
     enumSetDifference ss' = {-let ss' = take (binSize `div` 2) ss in -}nfList $ EnumSet.difference <$> ss' <*> ss'
 
-    overheadFromList = nfList . map (const ())
+    --overheadFromList = nfList . map (const ())
     rangeSetFromList = nfList . map RangeSet.fromList
-    setFromList = nfList . map Set.fromList
+    --setFromList = nfList . map Set.fromList
     patriciaFromList = nfList . map Patricia.fromList
-    enumSetFromList = nfList . map EnumSet.fromList
+    --enumSetFromList = nfList . map EnumSet.fromList
 
 {-
 maxElem :: Enum a => a
